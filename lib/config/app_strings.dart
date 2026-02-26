@@ -244,4 +244,11 @@ class AppStrings {
   static const manageAccounts = 'إدارة الحسابات';
   static const systemAccount = 'حساب نظام';
   static const cannotDeleteSystemAccount = 'لا يمكن حذف حساب النظام لأنه أساسي للتطبيق';
+
+  // ─── رسائل التحقق (جديد) ───
+  static const nameAlreadyExists = 'هذا الاسم موجود مسبقاً!';
+  static const codeAlreadyExists = 'هذا الرمز موجود مسبقاً!';
+  static const cannotDeleteHasTransactions = 'لا يمكن الحذف! يوجد حركات مالية (فواتير/سندات) مرتبطة به.';
+  static const mainAccountPrefix = 'رمز الحساب الرئيسي (يُدمج مع رمز الزبون في الإكسيل)';
+  static const nameOrCodeExists = 'الاسم أو الرمز مستخدم مسبقاً، يرجى تغييره!';
 }

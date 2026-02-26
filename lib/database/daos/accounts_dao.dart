@@ -51,6 +51,14 @@ class AccountsDao {
       }
     }
   }
+
+  // التحقق من تكرار الرمز أو الاسم
+  Future<bool> isCodeOrNameExists(String code, String name, int excludeId) async {
+    final result = await (db.select(db.accounts)
+      ..where((t) => (t.code.equals(code) | t.name.equals(name)) & t.id.equals(excludeId).not()))
+        .get();
+    return result.isNotEmpty;
+  }
 }
 
 final accountsDaoProvider = Provider<AccountsDao>((ref) {

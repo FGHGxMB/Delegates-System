@@ -100,6 +100,22 @@ class CatalogDao {
   Future<Product?> getProductById(int id) {
     return (db.select(db.products)..where((t) => t.id.equals(id))).getSingleOrNull();
   }
+
+  // التحقق من تكرار اسم المجموعة
+  Future<bool> isCategoryNameExists(String name, int excludeId) async {
+    final result = await (db.select(db.productCategories)
+      ..where((t) => t.name.equals(name) & t.id.equals(excludeId).not()))
+        .get();
+    return result.isNotEmpty;
+  }
+
+  // التحقق من تكرار رمز أو اسم المادة
+  Future<bool> isProductCodeOrNameExists(String code, String name, int excludeId) async {
+    final result = await (db.select(db.products)
+      ..where((t) => (t.code.equals(code) | t.name.equals(name)) & t.id.equals(excludeId).not()))
+        .get();
+    return result.isNotEmpty;
+  }
 }
 
 // المزود (Provider)

@@ -8,6 +8,8 @@ import 'screens/settings/categories_screen.dart';
 import 'screens/settings/products_screen.dart';
 import 'screens/settings/product_form_screen.dart';
 import 'screens/settings/accounts_screen.dart';
+import 'screens/customers/customers_list_screen.dart';
+import 'screens/customers/customer_form_screen.dart';
 
 // استيراد الشاشات الحقيقية
 import 'screens/settings/settings_screen.dart';
@@ -73,7 +75,7 @@ final goRouter = GoRouter(
         GoRoute(path: '/', builder: (context, state) => const TempScreen(title: AppStrings.homeTitle)),
         GoRoute(path: '/invoices', builder: (context, state) => const TempScreen(title: AppStrings.invoices)),
         GoRoute(path: '/transfers', builder: (context, state) => const TempScreen(title: AppStrings.transfers)),
-        GoRoute(path: '/customers', builder: (context, state) => const TempScreen(title: AppStrings.customers)),
+        GoRoute(path: '/customers', builder: (context, state) => const CustomersListScreen()),
         // ربط شاشة الإعدادات الحقيقية
         GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
       ],
@@ -113,6 +115,14 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/manage_accounts',
       builder: (context, state) => const AccountsScreen(),
+    ),
+    // مسار إضافة وتعديل الزبون
+    GoRoute(
+      path: '/customer_form/:customerId',
+      builder: (context, state) {
+        final customerId = int.parse(state.pathParameters['customerId']!);
+        return CustomerFormScreen(customerId: customerId);
+      },
     ),
   ],
 );

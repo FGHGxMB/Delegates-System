@@ -61,20 +61,21 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               onPressed: () async {
                 if (nameController.text.trim().isEmpty) return;
 
-                try {
-                  final dao = ref.read(catalogDaoProvider);
-                  if (existing == null) {
-                    await dao.addCategory(nameController.text.trim(), columns);
-                  } else {
-                    await dao.updateCategory(existing.copyWith(
-                      name: nameController.text.trim(),
-                      gridColumns: columns,
-                    ));
-                  }
-                  if (context.mounted) Navigator.pop(context);
-                } catch (e) {
-                  print('خطأ في قاعدة البيانات: $e'); // سيكشف لنا الخطأ في الكونسول
+                final dao = ref.read(catalogDaoProvider);
+
+                //[جديد] التحقق من التكرار
+                final exists = await dao.isCategoryNameExists(nameController.text.trim(), existing?.id ?? 0);
+                if (exists && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.nameAlreadyExists), backgroundColor: Colors.red));
+                  return;
                 }
+
+                if (existing == null) {
+                  await dao.addCategory(nameController.text.trim(), columns);
+                } else {
+                  await dao.updateCategory(existing.copyWith(name: nameController.text.trim(), gridColumns: columns));
+                }
+                if (context.mounted) Navigator.pop(context);
               },
               child: const Text(AppStrings.save),
             ),

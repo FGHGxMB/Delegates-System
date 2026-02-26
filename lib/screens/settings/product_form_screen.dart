@@ -106,6 +106,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
     final dao = ref.read(catalogDaoProvider);
 
+    // [جديد] التحقق من التكرار
+    final exists = await dao.isProductCodeOrNameExists(_codeCtrl.text.trim(), _nameCtrl.text.trim(), widget.productId);
+    if (exists && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.nameOrCodeExists), backgroundColor: Colors.red));
+      return;
+    }
+
     final companion = ProductsCompanion(
       categoryId: drift.Value(widget.categoryId),
       code: drift.Value(_codeCtrl.text.trim()),

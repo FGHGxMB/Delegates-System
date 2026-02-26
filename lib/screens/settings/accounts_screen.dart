@@ -86,15 +86,22 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
 
                 final dao = ref.read(accountsDaoProvider);
 
+                // [جديد] التحقق من التكرار
+                final exists = await dao.isCodeOrNameExists(codeCtrl.text.trim(), nameCtrl.text.trim(), existing?.id ?? 0);
+                if (exists && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.nameOrCodeExists), backgroundColor: Colors.red));
+                  return; // يمنع الحفظ ولا يغلق النافذة
+                }
+
                 final newAccount = Account(
-                  id: existing?.id ?? 0, // إذا 0 سيتم إنشاء جديد، وإلا سيعدل الحالي
+                  id: existing?.id ?? 0,
                   code: codeCtrl.text.trim(),
                   name: nameCtrl.text.trim(),
                   currency: currency,
                   accountType: type,
                   isSystem: existing?.isSystem ?? false,
                   isActive: existing?.isActive ?? true,
-                  displayOrder: existing?.displayOrder ?? 999, // يُضاف في النهاية
+                  displayOrder: existing?.displayOrder ?? 999,
                 );
 
                 await dao.saveAccount(newAccount);

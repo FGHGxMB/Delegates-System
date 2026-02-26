@@ -17,9 +17,9 @@ class Warehouses extends Table {
 // 3. جدول الزبائن
 class Customers extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get accountCode => text().unique()();
+  TextColumn get accountCode => text().unique()(); // أصبح يخزن فقط (001, 002)
   TextColumn get name => text()();
-  TextColumn get currency => text()(); // 'SYP' أو 'USD'
+  TextColumn get currency => text()();
   TextColumn get phone1 => text().nullable()();
   TextColumn get phone2 => text().nullable()();
   TextColumn get email => text().nullable()();
@@ -29,8 +29,9 @@ class Customers extends Table {
   TextColumn get area => text().nullable()();
   TextColumn get neighborhood => text().nullable()();
   TextColumn get street => text().nullable()();
-  TextColumn get gender => text()(); // 'M' أو 'F'
+  TextColumn get gender => text()();
   BoolColumn get isSent => boolean().withDefault(const Constant(false))();
+  BoolColumn get isModified => boolean().withDefault(const Constant(false))(); // [جديد] للتفريق في الإكسيل
   DateTimeColumn get createdAt => dateTime().nullable()();
 }
 

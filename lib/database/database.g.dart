@@ -466,6 +466,16 @@ class $CustomersTable extends Customers
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_sent" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _isModifiedMeta =
+      const VerificationMeta('isModified');
+  @override
+  late final GeneratedColumn<bool> isModified = GeneratedColumn<bool>(
+      'is_modified', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_modified" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -489,6 +499,7 @@ class $CustomersTable extends Customers
         street,
         gender,
         isSent,
+        isModified,
         createdAt
       ];
   @override
@@ -572,6 +583,12 @@ class $CustomersTable extends Customers
       context.handle(_isSentMeta,
           isSent.isAcceptableOrUnknown(data['is_sent']!, _isSentMeta));
     }
+    if (data.containsKey('is_modified')) {
+      context.handle(
+          _isModifiedMeta,
+          isModified.isAcceptableOrUnknown(
+              data['is_modified']!, _isModifiedMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -615,6 +632,8 @@ class $CustomersTable extends Customers
           .read(DriftSqlType.string, data['${effectivePrefix}gender'])!,
       isSent: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_sent'])!,
+      isModified: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_modified'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at']),
     );
@@ -642,6 +661,7 @@ class Customer extends DataClass implements Insertable<Customer> {
   final String? street;
   final String gender;
   final bool isSent;
+  final bool isModified;
   final DateTime? createdAt;
   const Customer(
       {required this.id,
@@ -659,6 +679,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       this.street,
       required this.gender,
       required this.isSent,
+      required this.isModified,
       this.createdAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -696,6 +717,7 @@ class Customer extends DataClass implements Insertable<Customer> {
     }
     map['gender'] = Variable<String>(gender);
     map['is_sent'] = Variable<bool>(isSent);
+    map['is_modified'] = Variable<bool>(isModified);
     if (!nullToAbsent || createdAt != null) {
       map['created_at'] = Variable<DateTime>(createdAt);
     }
@@ -728,6 +750,7 @@ class Customer extends DataClass implements Insertable<Customer> {
           street == null && nullToAbsent ? const Value.absent() : Value(street),
       gender: Value(gender),
       isSent: Value(isSent),
+      isModified: Value(isModified),
       createdAt: createdAt == null && nullToAbsent
           ? const Value.absent()
           : Value(createdAt),
@@ -753,6 +776,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       street: serializer.fromJson<String?>(json['street']),
       gender: serializer.fromJson<String>(json['gender']),
       isSent: serializer.fromJson<bool>(json['isSent']),
+      isModified: serializer.fromJson<bool>(json['isModified']),
       createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
     );
   }
@@ -775,6 +799,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       'street': serializer.toJson<String?>(street),
       'gender': serializer.toJson<String>(gender),
       'isSent': serializer.toJson<bool>(isSent),
+      'isModified': serializer.toJson<bool>(isModified),
       'createdAt': serializer.toJson<DateTime?>(createdAt),
     };
   }
@@ -795,6 +820,7 @@ class Customer extends DataClass implements Insertable<Customer> {
           Value<String?> street = const Value.absent(),
           String? gender,
           bool? isSent,
+          bool? isModified,
           Value<DateTime?> createdAt = const Value.absent()}) =>
       Customer(
         id: id ?? this.id,
@@ -813,6 +839,7 @@ class Customer extends DataClass implements Insertable<Customer> {
         street: street.present ? street.value : this.street,
         gender: gender ?? this.gender,
         isSent: isSent ?? this.isSent,
+        isModified: isModified ?? this.isModified,
         createdAt: createdAt.present ? createdAt.value : this.createdAt,
       );
   Customer copyWithCompanion(CustomersCompanion data) {
@@ -835,6 +862,8 @@ class Customer extends DataClass implements Insertable<Customer> {
       street: data.street.present ? data.street.value : this.street,
       gender: data.gender.present ? data.gender.value : this.gender,
       isSent: data.isSent.present ? data.isSent.value : this.isSent,
+      isModified:
+          data.isModified.present ? data.isModified.value : this.isModified,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -857,6 +886,7 @@ class Customer extends DataClass implements Insertable<Customer> {
           ..write('street: $street, ')
           ..write('gender: $gender, ')
           ..write('isSent: $isSent, ')
+          ..write('isModified: $isModified, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -879,6 +909,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       street,
       gender,
       isSent,
+      isModified,
       createdAt);
   @override
   bool operator ==(Object other) =>
@@ -899,6 +930,7 @@ class Customer extends DataClass implements Insertable<Customer> {
           other.street == this.street &&
           other.gender == this.gender &&
           other.isSent == this.isSent &&
+          other.isModified == this.isModified &&
           other.createdAt == this.createdAt);
 }
 
@@ -918,6 +950,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
   final Value<String?> street;
   final Value<String> gender;
   final Value<bool> isSent;
+  final Value<bool> isModified;
   final Value<DateTime?> createdAt;
   const CustomersCompanion({
     this.id = const Value.absent(),
@@ -935,6 +968,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     this.street = const Value.absent(),
     this.gender = const Value.absent(),
     this.isSent = const Value.absent(),
+    this.isModified = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   CustomersCompanion.insert({
@@ -953,6 +987,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     this.street = const Value.absent(),
     required String gender,
     this.isSent = const Value.absent(),
+    this.isModified = const Value.absent(),
     this.createdAt = const Value.absent(),
   })  : accountCode = Value(accountCode),
         name = Value(name),
@@ -974,6 +1009,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     Expression<String>? street,
     Expression<String>? gender,
     Expression<bool>? isSent,
+    Expression<bool>? isModified,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -992,6 +1028,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
       if (street != null) 'street': street,
       if (gender != null) 'gender': gender,
       if (isSent != null) 'is_sent': isSent,
+      if (isModified != null) 'is_modified': isModified,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -1012,6 +1049,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
       Value<String?>? street,
       Value<String>? gender,
       Value<bool>? isSent,
+      Value<bool>? isModified,
       Value<DateTime?>? createdAt}) {
     return CustomersCompanion(
       id: id ?? this.id,
@@ -1029,6 +1067,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
       street: street ?? this.street,
       gender: gender ?? this.gender,
       isSent: isSent ?? this.isSent,
+      isModified: isModified ?? this.isModified,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -1081,6 +1120,9 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     if (isSent.present) {
       map['is_sent'] = Variable<bool>(isSent.value);
     }
+    if (isModified.present) {
+      map['is_modified'] = Variable<bool>(isModified.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1105,6 +1147,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
           ..write('street: $street, ')
           ..write('gender: $gender, ')
           ..write('isSent: $isSent, ')
+          ..write('isModified: $isModified, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -5740,6 +5783,7 @@ typedef $$CustomersTableCreateCompanionBuilder = CustomersCompanion Function({
   Value<String?> street,
   required String gender,
   Value<bool> isSent,
+  Value<bool> isModified,
   Value<DateTime?> createdAt,
 });
 typedef $$CustomersTableUpdateCompanionBuilder = CustomersCompanion Function({
@@ -5758,6 +5802,7 @@ typedef $$CustomersTableUpdateCompanionBuilder = CustomersCompanion Function({
   Value<String?> street,
   Value<String> gender,
   Value<bool> isSent,
+  Value<bool> isModified,
   Value<DateTime?> createdAt,
 });
 
@@ -5793,6 +5838,7 @@ class $$CustomersTableTableManager extends RootTableManager<
             Value<String?> street = const Value.absent(),
             Value<String> gender = const Value.absent(),
             Value<bool> isSent = const Value.absent(),
+            Value<bool> isModified = const Value.absent(),
             Value<DateTime?> createdAt = const Value.absent(),
           }) =>
               CustomersCompanion(
@@ -5811,6 +5857,7 @@ class $$CustomersTableTableManager extends RootTableManager<
             street: street,
             gender: gender,
             isSent: isSent,
+            isModified: isModified,
             createdAt: createdAt,
           ),
           createCompanionCallback: ({
@@ -5829,6 +5876,7 @@ class $$CustomersTableTableManager extends RootTableManager<
             Value<String?> street = const Value.absent(),
             required String gender,
             Value<bool> isSent = const Value.absent(),
+            Value<bool> isModified = const Value.absent(),
             Value<DateTime?> createdAt = const Value.absent(),
           }) =>
               CustomersCompanion.insert(
@@ -5847,6 +5895,7 @@ class $$CustomersTableTableManager extends RootTableManager<
             street: street,
             gender: gender,
             isSent: isSent,
+            isModified: isModified,
             createdAt: createdAt,
           ),
         ));
@@ -5927,6 +5976,11 @@ class $$CustomersTableFilterComposer
 
   ColumnFilters<bool> get isSent => $state.composableBuilder(
       column: $state.table.isSent,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<bool> get isModified => $state.composableBuilder(
+      column: $state.table.isModified,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -6024,6 +6078,11 @@ class $$CustomersTableOrderingComposer
 
   ColumnOrderings<bool> get isSent => $state.composableBuilder(
       column: $state.table.isSent,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<bool> get isModified => $state.composableBuilder(
+      column: $state.table.isModified,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
