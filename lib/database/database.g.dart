@@ -1141,8 +1141,16 @@ class $ProductCategoriesTable extends ProductCategories
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
+  static const VerificationMeta _gridColumnsMeta =
+      const VerificationMeta('gridColumns');
   @override
-  List<GeneratedColumn> get $columns => [id, name, displayOrder];
+  late final GeneratedColumn<int> gridColumns = GeneratedColumn<int>(
+      'grid_columns', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(2));
+  @override
+  List<GeneratedColumn> get $columns => [id, name, displayOrder, gridColumns];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1168,6 +1176,12 @@ class $ProductCategoriesTable extends ProductCategories
           displayOrder.isAcceptableOrUnknown(
               data['display_order']!, _displayOrderMeta));
     }
+    if (data.containsKey('grid_columns')) {
+      context.handle(
+          _gridColumnsMeta,
+          gridColumns.isAcceptableOrUnknown(
+              data['grid_columns']!, _gridColumnsMeta));
+    }
     return context;
   }
 
@@ -1183,6 +1197,8 @@ class $ProductCategoriesTable extends ProductCategories
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
       displayOrder: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}display_order'])!,
+      gridColumns: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}grid_columns'])!,
     );
   }
 
@@ -1196,14 +1212,19 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
   final int id;
   final String name;
   final int displayOrder;
+  final int gridColumns;
   const ProductCategory(
-      {required this.id, required this.name, required this.displayOrder});
+      {required this.id,
+      required this.name,
+      required this.displayOrder,
+      required this.gridColumns});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
     map['display_order'] = Variable<int>(displayOrder);
+    map['grid_columns'] = Variable<int>(gridColumns);
     return map;
   }
 
@@ -1212,6 +1233,7 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
       id: Value(id),
       name: Value(name),
       displayOrder: Value(displayOrder),
+      gridColumns: Value(gridColumns),
     );
   }
 
@@ -1222,6 +1244,7 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       displayOrder: serializer.fromJson<int>(json['displayOrder']),
+      gridColumns: serializer.fromJson<int>(json['gridColumns']),
     );
   }
   @override
@@ -1231,14 +1254,17 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'displayOrder': serializer.toJson<int>(displayOrder),
+      'gridColumns': serializer.toJson<int>(gridColumns),
     };
   }
 
-  ProductCategory copyWith({int? id, String? name, int? displayOrder}) =>
+  ProductCategory copyWith(
+          {int? id, String? name, int? displayOrder, int? gridColumns}) =>
       ProductCategory(
         id: id ?? this.id,
         name: name ?? this.name,
         displayOrder: displayOrder ?? this.displayOrder,
+        gridColumns: gridColumns ?? this.gridColumns,
       );
   ProductCategory copyWithCompanion(ProductCategoriesCompanion data) {
     return ProductCategory(
@@ -1247,6 +1273,8 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
       displayOrder: data.displayOrder.present
           ? data.displayOrder.value
           : this.displayOrder,
+      gridColumns:
+          data.gridColumns.present ? data.gridColumns.value : this.gridColumns,
     );
   }
 
@@ -1255,54 +1283,65 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
     return (StringBuffer('ProductCategory(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('displayOrder: $displayOrder')
+          ..write('displayOrder: $displayOrder, ')
+          ..write('gridColumns: $gridColumns')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, displayOrder);
+  int get hashCode => Object.hash(id, name, displayOrder, gridColumns);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ProductCategory &&
           other.id == this.id &&
           other.name == this.name &&
-          other.displayOrder == this.displayOrder);
+          other.displayOrder == this.displayOrder &&
+          other.gridColumns == this.gridColumns);
 }
 
 class ProductCategoriesCompanion extends UpdateCompanion<ProductCategory> {
   final Value<int> id;
   final Value<String> name;
   final Value<int> displayOrder;
+  final Value<int> gridColumns;
   const ProductCategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.displayOrder = const Value.absent(),
+    this.gridColumns = const Value.absent(),
   });
   ProductCategoriesCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     this.displayOrder = const Value.absent(),
+    this.gridColumns = const Value.absent(),
   }) : name = Value(name);
   static Insertable<ProductCategory> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<int>? displayOrder,
+    Expression<int>? gridColumns,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (displayOrder != null) 'display_order': displayOrder,
+      if (gridColumns != null) 'grid_columns': gridColumns,
     });
   }
 
   ProductCategoriesCompanion copyWith(
-      {Value<int>? id, Value<String>? name, Value<int>? displayOrder}) {
+      {Value<int>? id,
+      Value<String>? name,
+      Value<int>? displayOrder,
+      Value<int>? gridColumns}) {
     return ProductCategoriesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       displayOrder: displayOrder ?? this.displayOrder,
+      gridColumns: gridColumns ?? this.gridColumns,
     );
   }
 
@@ -1318,6 +1357,9 @@ class ProductCategoriesCompanion extends UpdateCompanion<ProductCategory> {
     if (displayOrder.present) {
       map['display_order'] = Variable<int>(displayOrder.value);
     }
+    if (gridColumns.present) {
+      map['grid_columns'] = Variable<int>(gridColumns.value);
+    }
     return map;
   }
 
@@ -1326,7 +1368,8 @@ class ProductCategoriesCompanion extends UpdateCompanion<ProductCategory> {
     return (StringBuffer('ProductCategoriesCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('displayOrder: $displayOrder')
+          ..write('displayOrder: $displayOrder, ')
+          ..write('gridColumns: $gridColumns')
           ..write(')'))
         .toString();
   }
@@ -1367,12 +1410,6 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
       'name', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _barcodeMeta =
-      const VerificationMeta('barcode');
-  @override
-  late final GeneratedColumn<String> barcode = GeneratedColumn<String>(
-      'barcode', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _currencyMeta =
       const VerificationMeta('currency');
   @override
@@ -1385,6 +1422,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
   late final GeneratedColumn<String> unit1Name = GeneratedColumn<String>(
       'unit1_name', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _unit1BarcodeMeta =
+      const VerificationMeta('unit1Barcode');
+  @override
+  late final GeneratedColumn<String> unit1Barcode = GeneratedColumn<String>(
+      'unit1_barcode', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _unit1PriceRetailMeta =
       const VerificationMeta('unit1PriceRetail');
   @override
@@ -1406,6 +1449,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
   @override
   late final GeneratedColumn<String> unit2Name = GeneratedColumn<String>(
       'unit2_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _unit2BarcodeMeta =
+      const VerificationMeta('unit2Barcode');
+  @override
+  late final GeneratedColumn<String> unit2Barcode = GeneratedColumn<String>(
+      'unit2_barcode', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _unit2FactorMeta =
       const VerificationMeta('unit2Factor');
@@ -1430,6 +1479,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
   @override
   late final GeneratedColumn<String> unit3Name = GeneratedColumn<String>(
       'unit3_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _unit3BarcodeMeta =
+      const VerificationMeta('unit3Barcode');
+  @override
+  late final GeneratedColumn<String> unit3Barcode = GeneratedColumn<String>(
+      'unit3_barcode', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _unit3FactorMeta =
       const VerificationMeta('unit3Factor');
@@ -1467,27 +1522,38 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
       defaultValue: const Constant(true));
+  static const VerificationMeta _displayOrderMeta =
+      const VerificationMeta('displayOrder');
+  @override
+  late final GeneratedColumn<int> displayOrder = GeneratedColumn<int>(
+      'display_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   @override
   List<GeneratedColumn> get $columns => [
         id,
         code,
         categoryId,
         name,
-        barcode,
         currency,
         unit1Name,
+        unit1Barcode,
         unit1PriceRetail,
         unit1PriceWholesale,
         unit2Name,
+        unit2Barcode,
         unit2Factor,
         unit2PriceRetail,
         unit2PriceWholesale,
         unit3Name,
+        unit3Barcode,
         unit3Factor,
         unit3PriceRetail,
         unit3PriceWholesale,
         defaultUnit,
-        isActive
+        isActive,
+        displayOrder
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1522,10 +1588,6 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
-    if (data.containsKey('barcode')) {
-      context.handle(_barcodeMeta,
-          barcode.isAcceptableOrUnknown(data['barcode']!, _barcodeMeta));
-    }
     if (data.containsKey('currency')) {
       context.handle(_currencyMeta,
           currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta));
@@ -1537,6 +1599,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           unit1Name.isAcceptableOrUnknown(data['unit1_name']!, _unit1NameMeta));
     } else if (isInserting) {
       context.missing(_unit1NameMeta);
+    }
+    if (data.containsKey('unit1_barcode')) {
+      context.handle(
+          _unit1BarcodeMeta,
+          unit1Barcode.isAcceptableOrUnknown(
+              data['unit1_barcode']!, _unit1BarcodeMeta));
     }
     if (data.containsKey('unit1_price_retail')) {
       context.handle(
@@ -1553,6 +1621,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     if (data.containsKey('unit2_name')) {
       context.handle(_unit2NameMeta,
           unit2Name.isAcceptableOrUnknown(data['unit2_name']!, _unit2NameMeta));
+    }
+    if (data.containsKey('unit2_barcode')) {
+      context.handle(
+          _unit2BarcodeMeta,
+          unit2Barcode.isAcceptableOrUnknown(
+              data['unit2_barcode']!, _unit2BarcodeMeta));
     }
     if (data.containsKey('unit2_factor')) {
       context.handle(
@@ -1575,6 +1649,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     if (data.containsKey('unit3_name')) {
       context.handle(_unit3NameMeta,
           unit3Name.isAcceptableOrUnknown(data['unit3_name']!, _unit3NameMeta));
+    }
+    if (data.containsKey('unit3_barcode')) {
+      context.handle(
+          _unit3BarcodeMeta,
+          unit3Barcode.isAcceptableOrUnknown(
+              data['unit3_barcode']!, _unit3BarcodeMeta));
     }
     if (data.containsKey('unit3_factor')) {
       context.handle(
@@ -1604,6 +1684,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
       context.handle(_isActiveMeta,
           isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
     }
+    if (data.containsKey('display_order')) {
+      context.handle(
+          _displayOrderMeta,
+          displayOrder.isAcceptableOrUnknown(
+              data['display_order']!, _displayOrderMeta));
+    }
     return context;
   }
 
@@ -1621,12 +1707,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           .read(DriftSqlType.int, data['${effectivePrefix}category_id'])!,
       name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
-      barcode: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}barcode']),
       currency: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}currency'])!,
       unit1Name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}unit1_name'])!,
+      unit1Barcode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}unit1_barcode']),
       unit1PriceRetail: attachedDatabase.typeMapping.read(
           DriftSqlType.double, data['${effectivePrefix}unit1_price_retail'])!,
       unit1PriceWholesale: attachedDatabase.typeMapping.read(
@@ -1634,6 +1720,8 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           data['${effectivePrefix}unit1_price_wholesale'])!,
       unit2Name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}unit2_name']),
+      unit2Barcode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}unit2_barcode']),
       unit2Factor: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}unit2_factor']),
       unit2PriceRetail: attachedDatabase.typeMapping.read(
@@ -1642,6 +1730,8 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           DriftSqlType.double, data['${effectivePrefix}unit2_price_wholesale']),
       unit3Name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}unit3_name']),
+      unit3Barcode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}unit3_barcode']),
       unit3Factor: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}unit3_factor']),
       unit3PriceRetail: attachedDatabase.typeMapping.read(
@@ -1652,6 +1742,8 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           .read(DriftSqlType.int, data['${effectivePrefix}default_unit'])!,
       isActive: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
+      displayOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}display_order'])!,
     );
   }
 
@@ -1666,41 +1758,47 @@ class Product extends DataClass implements Insertable<Product> {
   final String code;
   final int categoryId;
   final String name;
-  final String? barcode;
   final String currency;
   final String unit1Name;
+  final String? unit1Barcode;
   final double unit1PriceRetail;
   final double unit1PriceWholesale;
   final String? unit2Name;
+  final String? unit2Barcode;
   final double? unit2Factor;
   final double? unit2PriceRetail;
   final double? unit2PriceWholesale;
   final String? unit3Name;
+  final String? unit3Barcode;
   final double? unit3Factor;
   final double? unit3PriceRetail;
   final double? unit3PriceWholesale;
   final int defaultUnit;
   final bool isActive;
+  final int displayOrder;
   const Product(
       {required this.id,
       required this.code,
       required this.categoryId,
       required this.name,
-      this.barcode,
       required this.currency,
       required this.unit1Name,
+      this.unit1Barcode,
       required this.unit1PriceRetail,
       required this.unit1PriceWholesale,
       this.unit2Name,
+      this.unit2Barcode,
       this.unit2Factor,
       this.unit2PriceRetail,
       this.unit2PriceWholesale,
       this.unit3Name,
+      this.unit3Barcode,
       this.unit3Factor,
       this.unit3PriceRetail,
       this.unit3PriceWholesale,
       required this.defaultUnit,
-      required this.isActive});
+      required this.isActive,
+      required this.displayOrder});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1708,15 +1806,18 @@ class Product extends DataClass implements Insertable<Product> {
     map['code'] = Variable<String>(code);
     map['category_id'] = Variable<int>(categoryId);
     map['name'] = Variable<String>(name);
-    if (!nullToAbsent || barcode != null) {
-      map['barcode'] = Variable<String>(barcode);
-    }
     map['currency'] = Variable<String>(currency);
     map['unit1_name'] = Variable<String>(unit1Name);
+    if (!nullToAbsent || unit1Barcode != null) {
+      map['unit1_barcode'] = Variable<String>(unit1Barcode);
+    }
     map['unit1_price_retail'] = Variable<double>(unit1PriceRetail);
     map['unit1_price_wholesale'] = Variable<double>(unit1PriceWholesale);
     if (!nullToAbsent || unit2Name != null) {
       map['unit2_name'] = Variable<String>(unit2Name);
+    }
+    if (!nullToAbsent || unit2Barcode != null) {
+      map['unit2_barcode'] = Variable<String>(unit2Barcode);
     }
     if (!nullToAbsent || unit2Factor != null) {
       map['unit2_factor'] = Variable<double>(unit2Factor);
@@ -1730,6 +1831,9 @@ class Product extends DataClass implements Insertable<Product> {
     if (!nullToAbsent || unit3Name != null) {
       map['unit3_name'] = Variable<String>(unit3Name);
     }
+    if (!nullToAbsent || unit3Barcode != null) {
+      map['unit3_barcode'] = Variable<String>(unit3Barcode);
+    }
     if (!nullToAbsent || unit3Factor != null) {
       map['unit3_factor'] = Variable<double>(unit3Factor);
     }
@@ -1741,6 +1845,7 @@ class Product extends DataClass implements Insertable<Product> {
     }
     map['default_unit'] = Variable<int>(defaultUnit);
     map['is_active'] = Variable<bool>(isActive);
+    map['display_order'] = Variable<int>(displayOrder);
     return map;
   }
 
@@ -1750,16 +1855,19 @@ class Product extends DataClass implements Insertable<Product> {
       code: Value(code),
       categoryId: Value(categoryId),
       name: Value(name),
-      barcode: barcode == null && nullToAbsent
-          ? const Value.absent()
-          : Value(barcode),
       currency: Value(currency),
       unit1Name: Value(unit1Name),
+      unit1Barcode: unit1Barcode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unit1Barcode),
       unit1PriceRetail: Value(unit1PriceRetail),
       unit1PriceWholesale: Value(unit1PriceWholesale),
       unit2Name: unit2Name == null && nullToAbsent
           ? const Value.absent()
           : Value(unit2Name),
+      unit2Barcode: unit2Barcode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unit2Barcode),
       unit2Factor: unit2Factor == null && nullToAbsent
           ? const Value.absent()
           : Value(unit2Factor),
@@ -1772,6 +1880,9 @@ class Product extends DataClass implements Insertable<Product> {
       unit3Name: unit3Name == null && nullToAbsent
           ? const Value.absent()
           : Value(unit3Name),
+      unit3Barcode: unit3Barcode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unit3Barcode),
       unit3Factor: unit3Factor == null && nullToAbsent
           ? const Value.absent()
           : Value(unit3Factor),
@@ -1783,6 +1894,7 @@ class Product extends DataClass implements Insertable<Product> {
           : Value(unit3PriceWholesale),
       defaultUnit: Value(defaultUnit),
       isActive: Value(isActive),
+      displayOrder: Value(displayOrder),
     );
   }
 
@@ -1794,24 +1906,27 @@ class Product extends DataClass implements Insertable<Product> {
       code: serializer.fromJson<String>(json['code']),
       categoryId: serializer.fromJson<int>(json['categoryId']),
       name: serializer.fromJson<String>(json['name']),
-      barcode: serializer.fromJson<String?>(json['barcode']),
       currency: serializer.fromJson<String>(json['currency']),
       unit1Name: serializer.fromJson<String>(json['unit1Name']),
+      unit1Barcode: serializer.fromJson<String?>(json['unit1Barcode']),
       unit1PriceRetail: serializer.fromJson<double>(json['unit1PriceRetail']),
       unit1PriceWholesale:
           serializer.fromJson<double>(json['unit1PriceWholesale']),
       unit2Name: serializer.fromJson<String?>(json['unit2Name']),
+      unit2Barcode: serializer.fromJson<String?>(json['unit2Barcode']),
       unit2Factor: serializer.fromJson<double?>(json['unit2Factor']),
       unit2PriceRetail: serializer.fromJson<double?>(json['unit2PriceRetail']),
       unit2PriceWholesale:
           serializer.fromJson<double?>(json['unit2PriceWholesale']),
       unit3Name: serializer.fromJson<String?>(json['unit3Name']),
+      unit3Barcode: serializer.fromJson<String?>(json['unit3Barcode']),
       unit3Factor: serializer.fromJson<double?>(json['unit3Factor']),
       unit3PriceRetail: serializer.fromJson<double?>(json['unit3PriceRetail']),
       unit3PriceWholesale:
           serializer.fromJson<double?>(json['unit3PriceWholesale']),
       defaultUnit: serializer.fromJson<int>(json['defaultUnit']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      displayOrder: serializer.fromJson<int>(json['displayOrder']),
     );
   }
   @override
@@ -1822,21 +1937,24 @@ class Product extends DataClass implements Insertable<Product> {
       'code': serializer.toJson<String>(code),
       'categoryId': serializer.toJson<int>(categoryId),
       'name': serializer.toJson<String>(name),
-      'barcode': serializer.toJson<String?>(barcode),
       'currency': serializer.toJson<String>(currency),
       'unit1Name': serializer.toJson<String>(unit1Name),
+      'unit1Barcode': serializer.toJson<String?>(unit1Barcode),
       'unit1PriceRetail': serializer.toJson<double>(unit1PriceRetail),
       'unit1PriceWholesale': serializer.toJson<double>(unit1PriceWholesale),
       'unit2Name': serializer.toJson<String?>(unit2Name),
+      'unit2Barcode': serializer.toJson<String?>(unit2Barcode),
       'unit2Factor': serializer.toJson<double?>(unit2Factor),
       'unit2PriceRetail': serializer.toJson<double?>(unit2PriceRetail),
       'unit2PriceWholesale': serializer.toJson<double?>(unit2PriceWholesale),
       'unit3Name': serializer.toJson<String?>(unit3Name),
+      'unit3Barcode': serializer.toJson<String?>(unit3Barcode),
       'unit3Factor': serializer.toJson<double?>(unit3Factor),
       'unit3PriceRetail': serializer.toJson<double?>(unit3PriceRetail),
       'unit3PriceWholesale': serializer.toJson<double?>(unit3PriceWholesale),
       'defaultUnit': serializer.toJson<int>(defaultUnit),
       'isActive': serializer.toJson<bool>(isActive),
+      'displayOrder': serializer.toJson<int>(displayOrder),
     };
   }
 
@@ -1845,32 +1963,38 @@ class Product extends DataClass implements Insertable<Product> {
           String? code,
           int? categoryId,
           String? name,
-          Value<String?> barcode = const Value.absent(),
           String? currency,
           String? unit1Name,
+          Value<String?> unit1Barcode = const Value.absent(),
           double? unit1PriceRetail,
           double? unit1PriceWholesale,
           Value<String?> unit2Name = const Value.absent(),
+          Value<String?> unit2Barcode = const Value.absent(),
           Value<double?> unit2Factor = const Value.absent(),
           Value<double?> unit2PriceRetail = const Value.absent(),
           Value<double?> unit2PriceWholesale = const Value.absent(),
           Value<String?> unit3Name = const Value.absent(),
+          Value<String?> unit3Barcode = const Value.absent(),
           Value<double?> unit3Factor = const Value.absent(),
           Value<double?> unit3PriceRetail = const Value.absent(),
           Value<double?> unit3PriceWholesale = const Value.absent(),
           int? defaultUnit,
-          bool? isActive}) =>
+          bool? isActive,
+          int? displayOrder}) =>
       Product(
         id: id ?? this.id,
         code: code ?? this.code,
         categoryId: categoryId ?? this.categoryId,
         name: name ?? this.name,
-        barcode: barcode.present ? barcode.value : this.barcode,
         currency: currency ?? this.currency,
         unit1Name: unit1Name ?? this.unit1Name,
+        unit1Barcode:
+            unit1Barcode.present ? unit1Barcode.value : this.unit1Barcode,
         unit1PriceRetail: unit1PriceRetail ?? this.unit1PriceRetail,
         unit1PriceWholesale: unit1PriceWholesale ?? this.unit1PriceWholesale,
         unit2Name: unit2Name.present ? unit2Name.value : this.unit2Name,
+        unit2Barcode:
+            unit2Barcode.present ? unit2Barcode.value : this.unit2Barcode,
         unit2Factor: unit2Factor.present ? unit2Factor.value : this.unit2Factor,
         unit2PriceRetail: unit2PriceRetail.present
             ? unit2PriceRetail.value
@@ -1879,6 +2003,8 @@ class Product extends DataClass implements Insertable<Product> {
             ? unit2PriceWholesale.value
             : this.unit2PriceWholesale,
         unit3Name: unit3Name.present ? unit3Name.value : this.unit3Name,
+        unit3Barcode:
+            unit3Barcode.present ? unit3Barcode.value : this.unit3Barcode,
         unit3Factor: unit3Factor.present ? unit3Factor.value : this.unit3Factor,
         unit3PriceRetail: unit3PriceRetail.present
             ? unit3PriceRetail.value
@@ -1888,6 +2014,7 @@ class Product extends DataClass implements Insertable<Product> {
             : this.unit3PriceWholesale,
         defaultUnit: defaultUnit ?? this.defaultUnit,
         isActive: isActive ?? this.isActive,
+        displayOrder: displayOrder ?? this.displayOrder,
       );
   Product copyWithCompanion(ProductsCompanion data) {
     return Product(
@@ -1896,9 +2023,11 @@ class Product extends DataClass implements Insertable<Product> {
       categoryId:
           data.categoryId.present ? data.categoryId.value : this.categoryId,
       name: data.name.present ? data.name.value : this.name,
-      barcode: data.barcode.present ? data.barcode.value : this.barcode,
       currency: data.currency.present ? data.currency.value : this.currency,
       unit1Name: data.unit1Name.present ? data.unit1Name.value : this.unit1Name,
+      unit1Barcode: data.unit1Barcode.present
+          ? data.unit1Barcode.value
+          : this.unit1Barcode,
       unit1PriceRetail: data.unit1PriceRetail.present
           ? data.unit1PriceRetail.value
           : this.unit1PriceRetail,
@@ -1906,6 +2035,9 @@ class Product extends DataClass implements Insertable<Product> {
           ? data.unit1PriceWholesale.value
           : this.unit1PriceWholesale,
       unit2Name: data.unit2Name.present ? data.unit2Name.value : this.unit2Name,
+      unit2Barcode: data.unit2Barcode.present
+          ? data.unit2Barcode.value
+          : this.unit2Barcode,
       unit2Factor:
           data.unit2Factor.present ? data.unit2Factor.value : this.unit2Factor,
       unit2PriceRetail: data.unit2PriceRetail.present
@@ -1915,6 +2047,9 @@ class Product extends DataClass implements Insertable<Product> {
           ? data.unit2PriceWholesale.value
           : this.unit2PriceWholesale,
       unit3Name: data.unit3Name.present ? data.unit3Name.value : this.unit3Name,
+      unit3Barcode: data.unit3Barcode.present
+          ? data.unit3Barcode.value
+          : this.unit3Barcode,
       unit3Factor:
           data.unit3Factor.present ? data.unit3Factor.value : this.unit3Factor,
       unit3PriceRetail: data.unit3PriceRetail.present
@@ -1926,6 +2061,9 @@ class Product extends DataClass implements Insertable<Product> {
       defaultUnit:
           data.defaultUnit.present ? data.defaultUnit.value : this.defaultUnit,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      displayOrder: data.displayOrder.present
+          ? data.displayOrder.value
+          : this.displayOrder,
     );
   }
 
@@ -1936,46 +2074,53 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('code: $code, ')
           ..write('categoryId: $categoryId, ')
           ..write('name: $name, ')
-          ..write('barcode: $barcode, ')
           ..write('currency: $currency, ')
           ..write('unit1Name: $unit1Name, ')
+          ..write('unit1Barcode: $unit1Barcode, ')
           ..write('unit1PriceRetail: $unit1PriceRetail, ')
           ..write('unit1PriceWholesale: $unit1PriceWholesale, ')
           ..write('unit2Name: $unit2Name, ')
+          ..write('unit2Barcode: $unit2Barcode, ')
           ..write('unit2Factor: $unit2Factor, ')
           ..write('unit2PriceRetail: $unit2PriceRetail, ')
           ..write('unit2PriceWholesale: $unit2PriceWholesale, ')
           ..write('unit3Name: $unit3Name, ')
+          ..write('unit3Barcode: $unit3Barcode, ')
           ..write('unit3Factor: $unit3Factor, ')
           ..write('unit3PriceRetail: $unit3PriceRetail, ')
           ..write('unit3PriceWholesale: $unit3PriceWholesale, ')
           ..write('defaultUnit: $defaultUnit, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('displayOrder: $displayOrder')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      code,
-      categoryId,
-      name,
-      barcode,
-      currency,
-      unit1Name,
-      unit1PriceRetail,
-      unit1PriceWholesale,
-      unit2Name,
-      unit2Factor,
-      unit2PriceRetail,
-      unit2PriceWholesale,
-      unit3Name,
-      unit3Factor,
-      unit3PriceRetail,
-      unit3PriceWholesale,
-      defaultUnit,
-      isActive);
+  int get hashCode => Object.hashAll([
+        id,
+        code,
+        categoryId,
+        name,
+        currency,
+        unit1Name,
+        unit1Barcode,
+        unit1PriceRetail,
+        unit1PriceWholesale,
+        unit2Name,
+        unit2Barcode,
+        unit2Factor,
+        unit2PriceRetail,
+        unit2PriceWholesale,
+        unit3Name,
+        unit3Barcode,
+        unit3Factor,
+        unit3PriceRetail,
+        unit3PriceWholesale,
+        defaultUnit,
+        isActive,
+        displayOrder
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1984,21 +2129,24 @@ class Product extends DataClass implements Insertable<Product> {
           other.code == this.code &&
           other.categoryId == this.categoryId &&
           other.name == this.name &&
-          other.barcode == this.barcode &&
           other.currency == this.currency &&
           other.unit1Name == this.unit1Name &&
+          other.unit1Barcode == this.unit1Barcode &&
           other.unit1PriceRetail == this.unit1PriceRetail &&
           other.unit1PriceWholesale == this.unit1PriceWholesale &&
           other.unit2Name == this.unit2Name &&
+          other.unit2Barcode == this.unit2Barcode &&
           other.unit2Factor == this.unit2Factor &&
           other.unit2PriceRetail == this.unit2PriceRetail &&
           other.unit2PriceWholesale == this.unit2PriceWholesale &&
           other.unit3Name == this.unit3Name &&
+          other.unit3Barcode == this.unit3Barcode &&
           other.unit3Factor == this.unit3Factor &&
           other.unit3PriceRetail == this.unit3PriceRetail &&
           other.unit3PriceWholesale == this.unit3PriceWholesale &&
           other.defaultUnit == this.defaultUnit &&
-          other.isActive == this.isActive);
+          other.isActive == this.isActive &&
+          other.displayOrder == this.displayOrder);
 }
 
 class ProductsCompanion extends UpdateCompanion<Product> {
@@ -2006,62 +2154,71 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<String> code;
   final Value<int> categoryId;
   final Value<String> name;
-  final Value<String?> barcode;
   final Value<String> currency;
   final Value<String> unit1Name;
+  final Value<String?> unit1Barcode;
   final Value<double> unit1PriceRetail;
   final Value<double> unit1PriceWholesale;
   final Value<String?> unit2Name;
+  final Value<String?> unit2Barcode;
   final Value<double?> unit2Factor;
   final Value<double?> unit2PriceRetail;
   final Value<double?> unit2PriceWholesale;
   final Value<String?> unit3Name;
+  final Value<String?> unit3Barcode;
   final Value<double?> unit3Factor;
   final Value<double?> unit3PriceRetail;
   final Value<double?> unit3PriceWholesale;
   final Value<int> defaultUnit;
   final Value<bool> isActive;
+  final Value<int> displayOrder;
   const ProductsCompanion({
     this.id = const Value.absent(),
     this.code = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.name = const Value.absent(),
-    this.barcode = const Value.absent(),
     this.currency = const Value.absent(),
     this.unit1Name = const Value.absent(),
+    this.unit1Barcode = const Value.absent(),
     this.unit1PriceRetail = const Value.absent(),
     this.unit1PriceWholesale = const Value.absent(),
     this.unit2Name = const Value.absent(),
+    this.unit2Barcode = const Value.absent(),
     this.unit2Factor = const Value.absent(),
     this.unit2PriceRetail = const Value.absent(),
     this.unit2PriceWholesale = const Value.absent(),
     this.unit3Name = const Value.absent(),
+    this.unit3Barcode = const Value.absent(),
     this.unit3Factor = const Value.absent(),
     this.unit3PriceRetail = const Value.absent(),
     this.unit3PriceWholesale = const Value.absent(),
     this.defaultUnit = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.displayOrder = const Value.absent(),
   });
   ProductsCompanion.insert({
     this.id = const Value.absent(),
     required String code,
     required int categoryId,
     required String name,
-    this.barcode = const Value.absent(),
     required String currency,
     required String unit1Name,
+    this.unit1Barcode = const Value.absent(),
     this.unit1PriceRetail = const Value.absent(),
     this.unit1PriceWholesale = const Value.absent(),
     this.unit2Name = const Value.absent(),
+    this.unit2Barcode = const Value.absent(),
     this.unit2Factor = const Value.absent(),
     this.unit2PriceRetail = const Value.absent(),
     this.unit2PriceWholesale = const Value.absent(),
     this.unit3Name = const Value.absent(),
+    this.unit3Barcode = const Value.absent(),
     this.unit3Factor = const Value.absent(),
     this.unit3PriceRetail = const Value.absent(),
     this.unit3PriceWholesale = const Value.absent(),
     this.defaultUnit = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.displayOrder = const Value.absent(),
   })  : code = Value(code),
         categoryId = Value(categoryId),
         name = Value(name),
@@ -2072,45 +2229,51 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<String>? code,
     Expression<int>? categoryId,
     Expression<String>? name,
-    Expression<String>? barcode,
     Expression<String>? currency,
     Expression<String>? unit1Name,
+    Expression<String>? unit1Barcode,
     Expression<double>? unit1PriceRetail,
     Expression<double>? unit1PriceWholesale,
     Expression<String>? unit2Name,
+    Expression<String>? unit2Barcode,
     Expression<double>? unit2Factor,
     Expression<double>? unit2PriceRetail,
     Expression<double>? unit2PriceWholesale,
     Expression<String>? unit3Name,
+    Expression<String>? unit3Barcode,
     Expression<double>? unit3Factor,
     Expression<double>? unit3PriceRetail,
     Expression<double>? unit3PriceWholesale,
     Expression<int>? defaultUnit,
     Expression<bool>? isActive,
+    Expression<int>? displayOrder,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (code != null) 'code': code,
       if (categoryId != null) 'category_id': categoryId,
       if (name != null) 'name': name,
-      if (barcode != null) 'barcode': barcode,
       if (currency != null) 'currency': currency,
       if (unit1Name != null) 'unit1_name': unit1Name,
+      if (unit1Barcode != null) 'unit1_barcode': unit1Barcode,
       if (unit1PriceRetail != null) 'unit1_price_retail': unit1PriceRetail,
       if (unit1PriceWholesale != null)
         'unit1_price_wholesale': unit1PriceWholesale,
       if (unit2Name != null) 'unit2_name': unit2Name,
+      if (unit2Barcode != null) 'unit2_barcode': unit2Barcode,
       if (unit2Factor != null) 'unit2_factor': unit2Factor,
       if (unit2PriceRetail != null) 'unit2_price_retail': unit2PriceRetail,
       if (unit2PriceWholesale != null)
         'unit2_price_wholesale': unit2PriceWholesale,
       if (unit3Name != null) 'unit3_name': unit3Name,
+      if (unit3Barcode != null) 'unit3_barcode': unit3Barcode,
       if (unit3Factor != null) 'unit3_factor': unit3Factor,
       if (unit3PriceRetail != null) 'unit3_price_retail': unit3PriceRetail,
       if (unit3PriceWholesale != null)
         'unit3_price_wholesale': unit3PriceWholesale,
       if (defaultUnit != null) 'default_unit': defaultUnit,
       if (isActive != null) 'is_active': isActive,
+      if (displayOrder != null) 'display_order': displayOrder,
     });
   }
 
@@ -2119,41 +2282,47 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       Value<String>? code,
       Value<int>? categoryId,
       Value<String>? name,
-      Value<String?>? barcode,
       Value<String>? currency,
       Value<String>? unit1Name,
+      Value<String?>? unit1Barcode,
       Value<double>? unit1PriceRetail,
       Value<double>? unit1PriceWholesale,
       Value<String?>? unit2Name,
+      Value<String?>? unit2Barcode,
       Value<double?>? unit2Factor,
       Value<double?>? unit2PriceRetail,
       Value<double?>? unit2PriceWholesale,
       Value<String?>? unit3Name,
+      Value<String?>? unit3Barcode,
       Value<double?>? unit3Factor,
       Value<double?>? unit3PriceRetail,
       Value<double?>? unit3PriceWholesale,
       Value<int>? defaultUnit,
-      Value<bool>? isActive}) {
+      Value<bool>? isActive,
+      Value<int>? displayOrder}) {
     return ProductsCompanion(
       id: id ?? this.id,
       code: code ?? this.code,
       categoryId: categoryId ?? this.categoryId,
       name: name ?? this.name,
-      barcode: barcode ?? this.barcode,
       currency: currency ?? this.currency,
       unit1Name: unit1Name ?? this.unit1Name,
+      unit1Barcode: unit1Barcode ?? this.unit1Barcode,
       unit1PriceRetail: unit1PriceRetail ?? this.unit1PriceRetail,
       unit1PriceWholesale: unit1PriceWholesale ?? this.unit1PriceWholesale,
       unit2Name: unit2Name ?? this.unit2Name,
+      unit2Barcode: unit2Barcode ?? this.unit2Barcode,
       unit2Factor: unit2Factor ?? this.unit2Factor,
       unit2PriceRetail: unit2PriceRetail ?? this.unit2PriceRetail,
       unit2PriceWholesale: unit2PriceWholesale ?? this.unit2PriceWholesale,
       unit3Name: unit3Name ?? this.unit3Name,
+      unit3Barcode: unit3Barcode ?? this.unit3Barcode,
       unit3Factor: unit3Factor ?? this.unit3Factor,
       unit3PriceRetail: unit3PriceRetail ?? this.unit3PriceRetail,
       unit3PriceWholesale: unit3PriceWholesale ?? this.unit3PriceWholesale,
       defaultUnit: defaultUnit ?? this.defaultUnit,
       isActive: isActive ?? this.isActive,
+      displayOrder: displayOrder ?? this.displayOrder,
     );
   }
 
@@ -2172,14 +2341,14 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
-    if (barcode.present) {
-      map['barcode'] = Variable<String>(barcode.value);
-    }
     if (currency.present) {
       map['currency'] = Variable<String>(currency.value);
     }
     if (unit1Name.present) {
       map['unit1_name'] = Variable<String>(unit1Name.value);
+    }
+    if (unit1Barcode.present) {
+      map['unit1_barcode'] = Variable<String>(unit1Barcode.value);
     }
     if (unit1PriceRetail.present) {
       map['unit1_price_retail'] = Variable<double>(unit1PriceRetail.value);
@@ -2190,6 +2359,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     }
     if (unit2Name.present) {
       map['unit2_name'] = Variable<String>(unit2Name.value);
+    }
+    if (unit2Barcode.present) {
+      map['unit2_barcode'] = Variable<String>(unit2Barcode.value);
     }
     if (unit2Factor.present) {
       map['unit2_factor'] = Variable<double>(unit2Factor.value);
@@ -2203,6 +2375,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     }
     if (unit3Name.present) {
       map['unit3_name'] = Variable<String>(unit3Name.value);
+    }
+    if (unit3Barcode.present) {
+      map['unit3_barcode'] = Variable<String>(unit3Barcode.value);
     }
     if (unit3Factor.present) {
       map['unit3_factor'] = Variable<double>(unit3Factor.value);
@@ -2220,6 +2395,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (displayOrder.present) {
+      map['display_order'] = Variable<int>(displayOrder.value);
+    }
     return map;
   }
 
@@ -2230,21 +2408,24 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('code: $code, ')
           ..write('categoryId: $categoryId, ')
           ..write('name: $name, ')
-          ..write('barcode: $barcode, ')
           ..write('currency: $currency, ')
           ..write('unit1Name: $unit1Name, ')
+          ..write('unit1Barcode: $unit1Barcode, ')
           ..write('unit1PriceRetail: $unit1PriceRetail, ')
           ..write('unit1PriceWholesale: $unit1PriceWholesale, ')
           ..write('unit2Name: $unit2Name, ')
+          ..write('unit2Barcode: $unit2Barcode, ')
           ..write('unit2Factor: $unit2Factor, ')
           ..write('unit2PriceRetail: $unit2PriceRetail, ')
           ..write('unit2PriceWholesale: $unit2PriceWholesale, ')
           ..write('unit3Name: $unit3Name, ')
+          ..write('unit3Barcode: $unit3Barcode, ')
           ..write('unit3Factor: $unit3Factor, ')
           ..write('unit3PriceRetail: $unit3PriceRetail, ')
           ..write('unit3PriceWholesale: $unit3PriceWholesale, ')
           ..write('defaultUnit: $defaultUnit, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('displayOrder: $displayOrder')
           ..write(')'))
         .toString();
   }
@@ -2282,6 +2463,14 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
   late final GeneratedColumn<String> currency = GeneratedColumn<String>(
       'currency', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _accountTypeMeta =
+      const VerificationMeta('accountType');
+  @override
+  late final GeneratedColumn<String> accountType = GeneratedColumn<String>(
+      'account_type', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('GENERAL'));
   static const VerificationMeta _isSystemMeta =
       const VerificationMeta('isSystem');
   @override
@@ -2302,9 +2491,17 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
       defaultValue: const Constant(true));
+  static const VerificationMeta _displayOrderMeta =
+      const VerificationMeta('displayOrder');
+  @override
+  late final GeneratedColumn<int> displayOrder = GeneratedColumn<int>(
+      'display_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   @override
   List<GeneratedColumn> get $columns =>
-      [id, code, name, currency, isSystem, isActive];
+      [id, code, name, currency, accountType, isSystem, isActive, displayOrder];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2336,6 +2533,12 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     } else if (isInserting) {
       context.missing(_currencyMeta);
     }
+    if (data.containsKey('account_type')) {
+      context.handle(
+          _accountTypeMeta,
+          accountType.isAcceptableOrUnknown(
+              data['account_type']!, _accountTypeMeta));
+    }
     if (data.containsKey('is_system')) {
       context.handle(_isSystemMeta,
           isSystem.isAcceptableOrUnknown(data['is_system']!, _isSystemMeta));
@@ -2343,6 +2546,12 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     if (data.containsKey('is_active')) {
       context.handle(_isActiveMeta,
           isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
+    }
+    if (data.containsKey('display_order')) {
+      context.handle(
+          _displayOrderMeta,
+          displayOrder.isAcceptableOrUnknown(
+              data['display_order']!, _displayOrderMeta));
     }
     return context;
   }
@@ -2361,10 +2570,14 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
       currency: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}currency'])!,
+      accountType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}account_type'])!,
       isSystem: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_system'])!,
       isActive: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
+      displayOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}display_order'])!,
     );
   }
 
@@ -2379,15 +2592,19 @@ class Account extends DataClass implements Insertable<Account> {
   final String code;
   final String name;
   final String currency;
+  final String accountType;
   final bool isSystem;
   final bool isActive;
+  final int displayOrder;
   const Account(
       {required this.id,
       required this.code,
       required this.name,
       required this.currency,
+      required this.accountType,
       required this.isSystem,
-      required this.isActive});
+      required this.isActive,
+      required this.displayOrder});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -2395,8 +2612,10 @@ class Account extends DataClass implements Insertable<Account> {
     map['code'] = Variable<String>(code);
     map['name'] = Variable<String>(name);
     map['currency'] = Variable<String>(currency);
+    map['account_type'] = Variable<String>(accountType);
     map['is_system'] = Variable<bool>(isSystem);
     map['is_active'] = Variable<bool>(isActive);
+    map['display_order'] = Variable<int>(displayOrder);
     return map;
   }
 
@@ -2406,8 +2625,10 @@ class Account extends DataClass implements Insertable<Account> {
       code: Value(code),
       name: Value(name),
       currency: Value(currency),
+      accountType: Value(accountType),
       isSystem: Value(isSystem),
       isActive: Value(isActive),
+      displayOrder: Value(displayOrder),
     );
   }
 
@@ -2419,8 +2640,10 @@ class Account extends DataClass implements Insertable<Account> {
       code: serializer.fromJson<String>(json['code']),
       name: serializer.fromJson<String>(json['name']),
       currency: serializer.fromJson<String>(json['currency']),
+      accountType: serializer.fromJson<String>(json['accountType']),
       isSystem: serializer.fromJson<bool>(json['isSystem']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      displayOrder: serializer.fromJson<int>(json['displayOrder']),
     );
   }
   @override
@@ -2431,8 +2654,10 @@ class Account extends DataClass implements Insertable<Account> {
       'code': serializer.toJson<String>(code),
       'name': serializer.toJson<String>(name),
       'currency': serializer.toJson<String>(currency),
+      'accountType': serializer.toJson<String>(accountType),
       'isSystem': serializer.toJson<bool>(isSystem),
       'isActive': serializer.toJson<bool>(isActive),
+      'displayOrder': serializer.toJson<int>(displayOrder),
     };
   }
 
@@ -2441,15 +2666,19 @@ class Account extends DataClass implements Insertable<Account> {
           String? code,
           String? name,
           String? currency,
+          String? accountType,
           bool? isSystem,
-          bool? isActive}) =>
+          bool? isActive,
+          int? displayOrder}) =>
       Account(
         id: id ?? this.id,
         code: code ?? this.code,
         name: name ?? this.name,
         currency: currency ?? this.currency,
+        accountType: accountType ?? this.accountType,
         isSystem: isSystem ?? this.isSystem,
         isActive: isActive ?? this.isActive,
+        displayOrder: displayOrder ?? this.displayOrder,
       );
   Account copyWithCompanion(AccountsCompanion data) {
     return Account(
@@ -2457,8 +2686,13 @@ class Account extends DataClass implements Insertable<Account> {
       code: data.code.present ? data.code.value : this.code,
       name: data.name.present ? data.name.value : this.name,
       currency: data.currency.present ? data.currency.value : this.currency,
+      accountType:
+          data.accountType.present ? data.accountType.value : this.accountType,
       isSystem: data.isSystem.present ? data.isSystem.value : this.isSystem,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      displayOrder: data.displayOrder.present
+          ? data.displayOrder.value
+          : this.displayOrder,
     );
   }
 
@@ -2469,14 +2703,17 @@ class Account extends DataClass implements Insertable<Account> {
           ..write('code: $code, ')
           ..write('name: $name, ')
           ..write('currency: $currency, ')
+          ..write('accountType: $accountType, ')
           ..write('isSystem: $isSystem, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('displayOrder: $displayOrder')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, code, name, currency, isSystem, isActive);
+  int get hashCode => Object.hash(
+      id, code, name, currency, accountType, isSystem, isActive, displayOrder);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2485,8 +2722,10 @@ class Account extends DataClass implements Insertable<Account> {
           other.code == this.code &&
           other.name == this.name &&
           other.currency == this.currency &&
+          other.accountType == this.accountType &&
           other.isSystem == this.isSystem &&
-          other.isActive == this.isActive);
+          other.isActive == this.isActive &&
+          other.displayOrder == this.displayOrder);
 }
 
 class AccountsCompanion extends UpdateCompanion<Account> {
@@ -2494,23 +2733,29 @@ class AccountsCompanion extends UpdateCompanion<Account> {
   final Value<String> code;
   final Value<String> name;
   final Value<String> currency;
+  final Value<String> accountType;
   final Value<bool> isSystem;
   final Value<bool> isActive;
+  final Value<int> displayOrder;
   const AccountsCompanion({
     this.id = const Value.absent(),
     this.code = const Value.absent(),
     this.name = const Value.absent(),
     this.currency = const Value.absent(),
+    this.accountType = const Value.absent(),
     this.isSystem = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.displayOrder = const Value.absent(),
   });
   AccountsCompanion.insert({
     this.id = const Value.absent(),
     required String code,
     required String name,
     required String currency,
+    this.accountType = const Value.absent(),
     this.isSystem = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.displayOrder = const Value.absent(),
   })  : code = Value(code),
         name = Value(name),
         currency = Value(currency);
@@ -2519,16 +2764,20 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Expression<String>? code,
     Expression<String>? name,
     Expression<String>? currency,
+    Expression<String>? accountType,
     Expression<bool>? isSystem,
     Expression<bool>? isActive,
+    Expression<int>? displayOrder,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (code != null) 'code': code,
       if (name != null) 'name': name,
       if (currency != null) 'currency': currency,
+      if (accountType != null) 'account_type': accountType,
       if (isSystem != null) 'is_system': isSystem,
       if (isActive != null) 'is_active': isActive,
+      if (displayOrder != null) 'display_order': displayOrder,
     });
   }
 
@@ -2537,15 +2786,19 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       Value<String>? code,
       Value<String>? name,
       Value<String>? currency,
+      Value<String>? accountType,
       Value<bool>? isSystem,
-      Value<bool>? isActive}) {
+      Value<bool>? isActive,
+      Value<int>? displayOrder}) {
     return AccountsCompanion(
       id: id ?? this.id,
       code: code ?? this.code,
       name: name ?? this.name,
       currency: currency ?? this.currency,
+      accountType: accountType ?? this.accountType,
       isSystem: isSystem ?? this.isSystem,
       isActive: isActive ?? this.isActive,
+      displayOrder: displayOrder ?? this.displayOrder,
     );
   }
 
@@ -2564,11 +2817,17 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     if (currency.present) {
       map['currency'] = Variable<String>(currency.value);
     }
+    if (accountType.present) {
+      map['account_type'] = Variable<String>(accountType.value);
+    }
     if (isSystem.present) {
       map['is_system'] = Variable<bool>(isSystem.value);
     }
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (displayOrder.present) {
+      map['display_order'] = Variable<int>(displayOrder.value);
     }
     return map;
   }
@@ -2580,8 +2839,10 @@ class AccountsCompanion extends UpdateCompanion<Account> {
           ..write('code: $code, ')
           ..write('name: $name, ')
           ..write('currency: $currency, ')
+          ..write('accountType: $accountType, ')
           ..write('isSystem: $isSystem, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('displayOrder: $displayOrder')
           ..write(')'))
         .toString();
   }
@@ -5777,12 +6038,14 @@ typedef $$ProductCategoriesTableCreateCompanionBuilder
   Value<int> id,
   required String name,
   Value<int> displayOrder,
+  Value<int> gridColumns,
 });
 typedef $$ProductCategoriesTableUpdateCompanionBuilder
     = ProductCategoriesCompanion Function({
   Value<int> id,
   Value<String> name,
   Value<int> displayOrder,
+  Value<int> gridColumns,
 });
 
 class $$ProductCategoriesTableTableManager extends RootTableManager<
@@ -5806,21 +6069,25 @@ class $$ProductCategoriesTableTableManager extends RootTableManager<
             Value<int> id = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<int> displayOrder = const Value.absent(),
+            Value<int> gridColumns = const Value.absent(),
           }) =>
               ProductCategoriesCompanion(
             id: id,
             name: name,
             displayOrder: displayOrder,
+            gridColumns: gridColumns,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required String name,
             Value<int> displayOrder = const Value.absent(),
+            Value<int> gridColumns = const Value.absent(),
           }) =>
               ProductCategoriesCompanion.insert(
             id: id,
             name: name,
             displayOrder: displayOrder,
+            gridColumns: gridColumns,
           ),
         ));
 }
@@ -5840,6 +6107,11 @@ class $$ProductCategoriesTableFilterComposer
 
   ColumnFilters<int> get displayOrder => $state.composableBuilder(
       column: $state.table.displayOrder,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<int> get gridColumns => $state.composableBuilder(
+      column: $state.table.gridColumns,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -5874,6 +6146,11 @@ class $$ProductCategoriesTableOrderingComposer
       column: $state.table.displayOrder,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<int> get gridColumns => $state.composableBuilder(
+      column: $state.table.gridColumns,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
 }
 
 typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
@@ -5881,42 +6158,48 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   required String code,
   required int categoryId,
   required String name,
-  Value<String?> barcode,
   required String currency,
   required String unit1Name,
+  Value<String?> unit1Barcode,
   Value<double> unit1PriceRetail,
   Value<double> unit1PriceWholesale,
   Value<String?> unit2Name,
+  Value<String?> unit2Barcode,
   Value<double?> unit2Factor,
   Value<double?> unit2PriceRetail,
   Value<double?> unit2PriceWholesale,
   Value<String?> unit3Name,
+  Value<String?> unit3Barcode,
   Value<double?> unit3Factor,
   Value<double?> unit3PriceRetail,
   Value<double?> unit3PriceWholesale,
   Value<int> defaultUnit,
   Value<bool> isActive,
+  Value<int> displayOrder,
 });
 typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<int> id,
   Value<String> code,
   Value<int> categoryId,
   Value<String> name,
-  Value<String?> barcode,
   Value<String> currency,
   Value<String> unit1Name,
+  Value<String?> unit1Barcode,
   Value<double> unit1PriceRetail,
   Value<double> unit1PriceWholesale,
   Value<String?> unit2Name,
+  Value<String?> unit2Barcode,
   Value<double?> unit2Factor,
   Value<double?> unit2PriceRetail,
   Value<double?> unit2PriceWholesale,
   Value<String?> unit3Name,
+  Value<String?> unit3Barcode,
   Value<double?> unit3Factor,
   Value<double?> unit3PriceRetail,
   Value<double?> unit3PriceWholesale,
   Value<int> defaultUnit,
   Value<bool> isActive,
+  Value<int> displayOrder,
 });
 
 class $$ProductsTableTableManager extends RootTableManager<
@@ -5940,84 +6223,96 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String> code = const Value.absent(),
             Value<int> categoryId = const Value.absent(),
             Value<String> name = const Value.absent(),
-            Value<String?> barcode = const Value.absent(),
             Value<String> currency = const Value.absent(),
             Value<String> unit1Name = const Value.absent(),
+            Value<String?> unit1Barcode = const Value.absent(),
             Value<double> unit1PriceRetail = const Value.absent(),
             Value<double> unit1PriceWholesale = const Value.absent(),
             Value<String?> unit2Name = const Value.absent(),
+            Value<String?> unit2Barcode = const Value.absent(),
             Value<double?> unit2Factor = const Value.absent(),
             Value<double?> unit2PriceRetail = const Value.absent(),
             Value<double?> unit2PriceWholesale = const Value.absent(),
             Value<String?> unit3Name = const Value.absent(),
+            Value<String?> unit3Barcode = const Value.absent(),
             Value<double?> unit3Factor = const Value.absent(),
             Value<double?> unit3PriceRetail = const Value.absent(),
             Value<double?> unit3PriceWholesale = const Value.absent(),
             Value<int> defaultUnit = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
+            Value<int> displayOrder = const Value.absent(),
           }) =>
               ProductsCompanion(
             id: id,
             code: code,
             categoryId: categoryId,
             name: name,
-            barcode: barcode,
             currency: currency,
             unit1Name: unit1Name,
+            unit1Barcode: unit1Barcode,
             unit1PriceRetail: unit1PriceRetail,
             unit1PriceWholesale: unit1PriceWholesale,
             unit2Name: unit2Name,
+            unit2Barcode: unit2Barcode,
             unit2Factor: unit2Factor,
             unit2PriceRetail: unit2PriceRetail,
             unit2PriceWholesale: unit2PriceWholesale,
             unit3Name: unit3Name,
+            unit3Barcode: unit3Barcode,
             unit3Factor: unit3Factor,
             unit3PriceRetail: unit3PriceRetail,
             unit3PriceWholesale: unit3PriceWholesale,
             defaultUnit: defaultUnit,
             isActive: isActive,
+            displayOrder: displayOrder,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required String code,
             required int categoryId,
             required String name,
-            Value<String?> barcode = const Value.absent(),
             required String currency,
             required String unit1Name,
+            Value<String?> unit1Barcode = const Value.absent(),
             Value<double> unit1PriceRetail = const Value.absent(),
             Value<double> unit1PriceWholesale = const Value.absent(),
             Value<String?> unit2Name = const Value.absent(),
+            Value<String?> unit2Barcode = const Value.absent(),
             Value<double?> unit2Factor = const Value.absent(),
             Value<double?> unit2PriceRetail = const Value.absent(),
             Value<double?> unit2PriceWholesale = const Value.absent(),
             Value<String?> unit3Name = const Value.absent(),
+            Value<String?> unit3Barcode = const Value.absent(),
             Value<double?> unit3Factor = const Value.absent(),
             Value<double?> unit3PriceRetail = const Value.absent(),
             Value<double?> unit3PriceWholesale = const Value.absent(),
             Value<int> defaultUnit = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
+            Value<int> displayOrder = const Value.absent(),
           }) =>
               ProductsCompanion.insert(
             id: id,
             code: code,
             categoryId: categoryId,
             name: name,
-            barcode: barcode,
             currency: currency,
             unit1Name: unit1Name,
+            unit1Barcode: unit1Barcode,
             unit1PriceRetail: unit1PriceRetail,
             unit1PriceWholesale: unit1PriceWholesale,
             unit2Name: unit2Name,
+            unit2Barcode: unit2Barcode,
             unit2Factor: unit2Factor,
             unit2PriceRetail: unit2PriceRetail,
             unit2PriceWholesale: unit2PriceWholesale,
             unit3Name: unit3Name,
+            unit3Barcode: unit3Barcode,
             unit3Factor: unit3Factor,
             unit3PriceRetail: unit3PriceRetail,
             unit3PriceWholesale: unit3PriceWholesale,
             defaultUnit: defaultUnit,
             isActive: isActive,
+            displayOrder: displayOrder,
           ),
         ));
 }
@@ -6040,11 +6335,6 @@ class $$ProductsTableFilterComposer
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
-  ColumnFilters<String> get barcode => $state.composableBuilder(
-      column: $state.table.barcode,
-      builder: (column, joinBuilders) =>
-          ColumnFilters(column, joinBuilders: joinBuilders));
-
   ColumnFilters<String> get currency => $state.composableBuilder(
       column: $state.table.currency,
       builder: (column, joinBuilders) =>
@@ -6052,6 +6342,11 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<String> get unit1Name => $state.composableBuilder(
       column: $state.table.unit1Name,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get unit1Barcode => $state.composableBuilder(
+      column: $state.table.unit1Barcode,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -6067,6 +6362,11 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<String> get unit2Name => $state.composableBuilder(
       column: $state.table.unit2Name,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get unit2Barcode => $state.composableBuilder(
+      column: $state.table.unit2Barcode,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -6087,6 +6387,11 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<String> get unit3Name => $state.composableBuilder(
       column: $state.table.unit3Name,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get unit3Barcode => $state.composableBuilder(
+      column: $state.table.unit3Barcode,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -6112,6 +6417,11 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<bool> get isActive => $state.composableBuilder(
       column: $state.table.isActive,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<int> get displayOrder => $state.composableBuilder(
+      column: $state.table.displayOrder,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -6176,11 +6486,6 @@ class $$ProductsTableOrderingComposer
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
-  ColumnOrderings<String> get barcode => $state.composableBuilder(
-      column: $state.table.barcode,
-      builder: (column, joinBuilders) =>
-          ColumnOrderings(column, joinBuilders: joinBuilders));
-
   ColumnOrderings<String> get currency => $state.composableBuilder(
       column: $state.table.currency,
       builder: (column, joinBuilders) =>
@@ -6188,6 +6493,11 @@ class $$ProductsTableOrderingComposer
 
   ColumnOrderings<String> get unit1Name => $state.composableBuilder(
       column: $state.table.unit1Name,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get unit1Barcode => $state.composableBuilder(
+      column: $state.table.unit1Barcode,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
@@ -6203,6 +6513,11 @@ class $$ProductsTableOrderingComposer
 
   ColumnOrderings<String> get unit2Name => $state.composableBuilder(
       column: $state.table.unit2Name,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get unit2Barcode => $state.composableBuilder(
+      column: $state.table.unit2Barcode,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
@@ -6223,6 +6538,11 @@ class $$ProductsTableOrderingComposer
 
   ColumnOrderings<String> get unit3Name => $state.composableBuilder(
       column: $state.table.unit3Name,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get unit3Barcode => $state.composableBuilder(
+      column: $state.table.unit3Barcode,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
@@ -6251,6 +6571,11 @@ class $$ProductsTableOrderingComposer
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
+  ColumnOrderings<int> get displayOrder => $state.composableBuilder(
+      column: $state.table.displayOrder,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
   $$ProductCategoriesTableOrderingComposer get categoryId {
     final $$ProductCategoriesTableOrderingComposer composer =
         $state.composerBuilder(
@@ -6273,16 +6598,20 @@ typedef $$AccountsTableCreateCompanionBuilder = AccountsCompanion Function({
   required String code,
   required String name,
   required String currency,
+  Value<String> accountType,
   Value<bool> isSystem,
   Value<bool> isActive,
+  Value<int> displayOrder,
 });
 typedef $$AccountsTableUpdateCompanionBuilder = AccountsCompanion Function({
   Value<int> id,
   Value<String> code,
   Value<String> name,
   Value<String> currency,
+  Value<String> accountType,
   Value<bool> isSystem,
   Value<bool> isActive,
+  Value<int> displayOrder,
 });
 
 class $$AccountsTableTableManager extends RootTableManager<
@@ -6306,32 +6635,40 @@ class $$AccountsTableTableManager extends RootTableManager<
             Value<String> code = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<String> currency = const Value.absent(),
+            Value<String> accountType = const Value.absent(),
             Value<bool> isSystem = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
+            Value<int> displayOrder = const Value.absent(),
           }) =>
               AccountsCompanion(
             id: id,
             code: code,
             name: name,
             currency: currency,
+            accountType: accountType,
             isSystem: isSystem,
             isActive: isActive,
+            displayOrder: displayOrder,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required String code,
             required String name,
             required String currency,
+            Value<String> accountType = const Value.absent(),
             Value<bool> isSystem = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
+            Value<int> displayOrder = const Value.absent(),
           }) =>
               AccountsCompanion.insert(
             id: id,
             code: code,
             name: name,
             currency: currency,
+            accountType: accountType,
             isSystem: isSystem,
             isActive: isActive,
+            displayOrder: displayOrder,
           ),
         ));
 }
@@ -6359,6 +6696,11 @@ class $$AccountsTableFilterComposer
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
+  ColumnFilters<String> get accountType => $state.composableBuilder(
+      column: $state.table.accountType,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
   ColumnFilters<bool> get isSystem => $state.composableBuilder(
       column: $state.table.isSystem,
       builder: (column, joinBuilders) =>
@@ -6366,6 +6708,11 @@ class $$AccountsTableFilterComposer
 
   ColumnFilters<bool> get isActive => $state.composableBuilder(
       column: $state.table.isActive,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<int> get displayOrder => $state.composableBuilder(
+      column: $state.table.displayOrder,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 }
@@ -6393,6 +6740,11 @@ class $$AccountsTableOrderingComposer
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
+  ColumnOrderings<String> get accountType => $state.composableBuilder(
+      column: $state.table.accountType,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
   ColumnOrderings<bool> get isSystem => $state.composableBuilder(
       column: $state.table.isSystem,
       builder: (column, joinBuilders) =>
@@ -6400,6 +6752,11 @@ class $$AccountsTableOrderingComposer
 
   ColumnOrderings<bool> get isActive => $state.composableBuilder(
       column: $state.table.isActive,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<int> get displayOrder => $state.composableBuilder(
+      column: $state.table.displayOrder,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 }

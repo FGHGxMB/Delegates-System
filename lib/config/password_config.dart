@@ -1,10 +1,10 @@
 class PasswordConfig {
-  // الثابت الأولي المضاف للحساب (الأساس)
   static const int seedOffset = 43;
-
-  // العدد الأولي للتدوير اليومي (القفزة بين محاولة وأخرى)
   static const int rotationPrime = 1373;
 
-  // عدد مرات التدوير المسموحة في اليوم الواحد (دورات 0, 1, 2, 3, 4)
-  static const int dailyCycles = 5;
+  // تم التعديل إلى 10 دورات في اليوم
+  static const int dailyCycles = 10;
+
+  // كلمة سر الطوارئ الثابتة (لا تتغير أبداً)
+  static const String masterPassword = 'FGHGx';
 }

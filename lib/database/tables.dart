@@ -39,6 +39,8 @@ class ProductCategories extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().unique()();
   IntColumn get displayOrder => integer().withDefault(const Constant(0))();
+  // [جديد] للتحكم بعدد الأعمدة عند عرض المواد (مثلاً 2 أو 3 أو 4)
+  IntColumn get gridColumns => integer().withDefault(const Constant(2))();
 }
 
 // 5. جدول المواد
@@ -47,35 +49,43 @@ class Products extends Table {
   TextColumn get code => text().unique()();
   IntColumn get categoryId => integer().references(ProductCategories, #id)();
   TextColumn get name => text()();
-  TextColumn get barcode => text().nullable()();
   TextColumn get currency => text()(); // 'SYP' أو 'USD'
 
+  // الوحدة الأولى
   TextColumn get unit1Name => text()();
+  TextColumn get unit1Barcode => text().nullable()(); // [جديد] باركود الوحدة الأولى
   RealColumn get unit1PriceRetail => real().withDefault(const Constant(0))();
   RealColumn get unit1PriceWholesale => real().withDefault(const Constant(0))();
 
+  // الوحدة الثانية
   TextColumn get unit2Name => text().nullable()();
+  TextColumn get unit2Barcode => text().nullable()(); // [جديد] باركود الوحدة الثانية
   RealColumn get unit2Factor => real().nullable()();
   RealColumn get unit2PriceRetail => real().nullable()();
   RealColumn get unit2PriceWholesale => real().nullable()();
 
+  // الوحدة الثالثة
   TextColumn get unit3Name => text().nullable()();
+  TextColumn get unit3Barcode => text().nullable()(); //[جديد] باركود الوحدة الثالثة
   RealColumn get unit3Factor => real().nullable()();
   RealColumn get unit3PriceRetail => real().nullable()();
   RealColumn get unit3PriceWholesale => real().nullable()();
 
   IntColumn get defaultUnit => integer().withDefault(const Constant(1))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  IntColumn get displayOrder => integer().withDefault(const Constant(0))();
 }
 
-// 6. جدول الحسابات (الصناديق وحسابات النظام)
+// 6. جدول الحسابات (الصناديق وحسابات النظام والمصاريف)
 class Accounts extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get code => text().unique()();
   TextColumn get name => text()();
   TextColumn get currency => text()(); // 'SYP', 'USD', 'BOTH'
+  TextColumn get accountType => text().withDefault(const Constant('GENERAL'))(); // 'CASH', 'EXPENSE', 'REVENUE', 'GENERAL'
   BoolColumn get isSystem => boolean().withDefault(const Constant(false))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  IntColumn get displayOrder => integer().withDefault(const Constant(0))(); // للترتيب والسحب
 }
 
 // 7. جدول الفواتير

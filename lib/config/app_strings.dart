@@ -210,4 +210,38 @@ class AppStrings {
   static const selectFromWarehouse = 'اختر المستودع المُسلِّم';
   static const selectToWarehouse = 'اختر المستودع المُستلِم';
   static const transferWarehousesRequired = 'لا يمكن تخريج المناقلة دون تحديد المستودع المُسلِّم والمُستلِم';
+
+  // ─── إعدادات المندوب والمجموعات (تحديثات) ───
+  static const delegatePassword = 'كلمة سر المندوب (اختياري)';
+  static const delegatePasswordHint = 'اترك الحقل فارغاً لإلغاء الصلاحية';
+  static const manageCategories = 'إدارة المجموعات والمواد';
+  static const gridColumnsCount = 'عدد الأعمدة لعرض المواد';
+
+  // ─── المستودعات (إضافات) ───
+  static const manageWarehouses = 'إدارة المستودعات';
+  static const addWarehousePrompt = 'أدخل اسم المستودع الجديد (أو سيارة المندوب)';
+  static const warehouseName = 'اسم المستودع';
+  static const deleteWarehouseConfirm = 'هل أنت متأكد من حذف هذا المستودع؟';
+
+  // ─── المجموعات (إضافات السحب والإفلات) ───
+  static const editCategory = 'تعديل المجموعة';
+  static const columnsCount = 'عدد الأعمدة';
+  static const dragToReorder = 'اضغط مطولاً للسحب وتغيير الترتيب';
+  static const categoryNotEmpty = 'لا يمكن حذف مجموعة تحتوي على مواد!';
+  static const manageProducts = 'إدارة مواد المجموعة';
+
+  // ─── المواد (إضافات) ───
+  static const basicInfo = 'المعلومات الأساسية';
+  static const enableUnit2 = 'تفعيل الوحدة الثانية';
+  static const enableUnit3 = 'تفعيل الوحدة الثالثة';
+  static const deleteProductConfirm = 'هل أنت متأكد من حذف هذه المادة نهائياً؟';
+
+  // ─── شاشة إضافة المادة (الوحش) ───
+  static const editProduct = 'تعديل المادة';
+  static const productCurrencyWarning = 'لا يمكن تغيير عملة مادة مستخدمة في فواتير سابقة';
+
+  // ─── الحسابات (إضافات) ───
+  static const manageAccounts = 'إدارة الحسابات';
+  static const systemAccount = 'حساب نظام';
+  static const cannotDeleteSystemAccount = 'لا يمكن حذف حساب النظام لأنه أساسي للتطبيق';
 }

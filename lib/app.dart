@@ -3,8 +3,17 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'config/app_theme.dart';
 import 'config/app_strings.dart';
+import 'screens/settings/warehouses_screen.dart';
+import 'screens/settings/categories_screen.dart';
+import 'screens/settings/products_screen.dart';
+import 'screens/settings/product_form_screen.dart';
+import 'screens/settings/accounts_screen.dart';
 
-// === شاشات مؤقتة للتجربة ===
+// استيراد الشاشات الحقيقية
+import 'screens/settings/settings_screen.dart';
+import 'screens/settings/protected_settings_screen.dart';
+
+// === الشاشات المؤقتة لباقي التبويبات ===
 class TempScreen extends StatelessWidget {
   final String title;
   const TempScreen({Key? key, required this.title}) : super(key: key);
@@ -15,18 +24,17 @@ class TempScreen extends StatelessWidget {
   );
 }
 
-// === الهيكل الرئيسي (الشريط السفلي) ===
+// === الهيكل الرئيسي (MainShell) كما هو بدون تغيير ===
 class MainShell extends StatelessWidget {
   final Widget child;
   const MainShell({Key? key, required this.child}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // تحديد مسار التوجيه الحالي لمعرفة أي أيقونة نفعلها
     final String location = GoRouterState.of(context).uri.path;
     int currentIndex = 0;
     if (location.startsWith('/invoices')) currentIndex = 1;
-    if (location.startsWith('/transfers')) currentIndex = 2; // المناقلات
+    if (location.startsWith('/transfers')) currentIndex = 2;
     if (location.startsWith('/customers')) currentIndex = 3;
     if (location.startsWith('/settings')) currentIndex = 4;
 
@@ -55,7 +63,7 @@ class MainShell extends StatelessWidget {
   }
 }
 
-// === إعداد الموجه (Go Router) ===
+// === تحديث الـ Router ===
 final goRouter = GoRouter(
   initialLocation: '/',
   routes: [
@@ -66,13 +74,49 @@ final goRouter = GoRouter(
         GoRoute(path: '/invoices', builder: (context, state) => const TempScreen(title: AppStrings.invoices)),
         GoRoute(path: '/transfers', builder: (context, state) => const TempScreen(title: AppStrings.transfers)),
         GoRoute(path: '/customers', builder: (context, state) => const TempScreen(title: AppStrings.customers)),
-        GoRoute(path: '/settings', builder: (context, state) => const TempScreen(title: AppStrings.settings)),
+        // ربط شاشة الإعدادات الحقيقية
+        GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
       ],
+    ),
+    // شاشة الإعدادات المحمية تكون خارج الـ Shell (تأخذ الشاشة كاملة بدون الشريط السفلي)
+    GoRoute(
+        path: '/protected_settings',
+        builder: (context, state) => const ProtectedSettingsScreen()
+    ),
+    // [جديد] مسار شاشة إدارة المستودعات
+    GoRoute(
+        path: '/manage_warehouses',
+        builder: (context, state) => const WarehousesScreen()
+    ),
+    GoRoute(
+        path: '/manage_categories',
+        builder: (context, state) => const CategoriesScreen()
+    ),
+    GoRoute(
+      path: '/category_products/:categoryId/:categoryName',
+      builder: (context, state) {
+        final categoryId = int.parse(state.pathParameters['categoryId']!);
+        final categoryName = state.pathParameters['categoryName']!;
+        return ProductsScreen(categoryId: categoryId, categoryName: categoryName);
+      },
+    ),
+    // [جديد] مسار شاشة إضافة/تعديل المادة
+    GoRoute(
+      path: '/product_form/:categoryId/:productId',
+      builder: (context, state) {
+        final categoryId = int.parse(state.pathParameters['categoryId']!);
+        final productId = int.parse(state.pathParameters['productId']!);
+        return ProductFormScreen(categoryId: categoryId, productId: productId);
+      },
+    ),
+    // [جديد] مسار إدارة الحسابات
+    GoRoute(
+      path: '/manage_accounts',
+      builder: (context, state) => const AccountsScreen(),
     ),
   ],
 );
 
-// === الكلاس الرئيسي للتطبيق ===
 class MainApp extends StatelessWidget {
   const MainApp({Key? key}) : super(key: key);
 
@@ -82,18 +126,13 @@ class MainApp extends StatelessWidget {
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-
-      // إعدادات اللغة العربية (RTL)
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('ar', 'AE'), // تحديد اللغة العربية
-      ],
+      supportedLocales: const [Locale('ar', 'AE')],
       locale: const Locale('ar', 'AE'),
-
       routerConfig: goRouter,
     );
   }
