@@ -112,15 +112,29 @@ class Invoices extends Table {
 class InvoiceLines extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get invoiceId => integer().references(Invoices, #id)();
+
+  // المادة الظاهرة في الفاتورة للزبون
   IntColumn get productId => integer().references(Products, #id)();
   TextColumn get productCode => text().nullable()();
   TextColumn get productName => text().nullable()();
+
+  // [جديد] المادة الحقيقية (التي سُلمت فعلياً) - فارغة إذا لم يتم التبديل
+  IntColumn get realProductId => integer().nullable().references(Products, #id)();
+  TextColumn get realProductCode => text().nullable()();
+  TextColumn get realProductName => text().nullable()();
+
   IntColumn get unitNumber => integer()();
   TextColumn get unitName => text().nullable()();
   RealColumn get quantity => real()();
   RealColumn get price => real()();
+
+  // لقطة لأسعار المادة وقت الفاتورة (للمرجعية والتحليلات)
+  RealColumn get priceRetailSnapshot => real().nullable()();
+  RealColumn get priceWholesaleSnapshot => real().nullable()();
+
   BoolColumn get isGift => boolean().withDefault(const Constant(false))();
   TextColumn get lineNote => text().nullable()();
+  IntColumn get lineOrder => integer().nullable()();
 }
 
 // 9. جدول السندات

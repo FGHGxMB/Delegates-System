@@ -251,4 +251,12 @@ class AppStrings {
   static const cannotDeleteHasTransactions = 'لا يمكن الحذف! يوجد حركات مالية (فواتير/سندات) مرتبطة به.';
   static const mainAccountPrefix = 'رمز الحساب الرئيسي (يُدمج مع رمز الزبون في الإكسيل)';
   static const nameOrCodeExists = 'الاسم أو الرمز مستخدم مسبقاً، يرجى تغييره!';
+
+  // ─── إضافات الفواتير والمادة الحقيقية ───
+  static const selectRealProduct = 'تحديد المادة الحقيقية المُسلّمة';
+  static const realProductSelected = 'المادة الحقيقية:';
+  static const removeRealProduct = 'إلغاء المادة الحقيقية (إرجاع للأصل)';
+  static const deceptiveLineHint = 'تم تبديل المادة فعلياً';
+  static const invoiceSavedAsDraft = 'تم حفظ الفاتورة كمسودة';
+  static const confirmIssueInvoice = 'هل أنت متأكد من تخريج الفاتورة؟ لن تتمكن من تعديلها أو حذفها لاحقاً وستُرسل للمحاسب.';
 }

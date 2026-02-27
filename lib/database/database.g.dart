@@ -3660,6 +3660,27 @@ class $InvoiceLinesTable extends InvoiceLines
   late final GeneratedColumn<String> productName = GeneratedColumn<String>(
       'product_name', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _realProductIdMeta =
+      const VerificationMeta('realProductId');
+  @override
+  late final GeneratedColumn<int> realProductId = GeneratedColumn<int>(
+      'real_product_id', aliasedName, true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES products (id)'));
+  static const VerificationMeta _realProductCodeMeta =
+      const VerificationMeta('realProductCode');
+  @override
+  late final GeneratedColumn<String> realProductCode = GeneratedColumn<String>(
+      'real_product_code', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _realProductNameMeta =
+      const VerificationMeta('realProductName');
+  @override
+  late final GeneratedColumn<String> realProductName = GeneratedColumn<String>(
+      'real_product_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _unitNumberMeta =
       const VerificationMeta('unitNumber');
   @override
@@ -3683,6 +3704,18 @@ class $InvoiceLinesTable extends InvoiceLines
   late final GeneratedColumn<double> price = GeneratedColumn<double>(
       'price', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _priceRetailSnapshotMeta =
+      const VerificationMeta('priceRetailSnapshot');
+  @override
+  late final GeneratedColumn<double> priceRetailSnapshot =
+      GeneratedColumn<double>('price_retail_snapshot', aliasedName, true,
+          type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _priceWholesaleSnapshotMeta =
+      const VerificationMeta('priceWholesaleSnapshot');
+  @override
+  late final GeneratedColumn<double> priceWholesaleSnapshot =
+      GeneratedColumn<double>('price_wholesale_snapshot', aliasedName, true,
+          type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _isGiftMeta = const VerificationMeta('isGift');
   @override
   late final GeneratedColumn<bool> isGift = GeneratedColumn<bool>(
@@ -3698,6 +3731,12 @@ class $InvoiceLinesTable extends InvoiceLines
   late final GeneratedColumn<String> lineNote = GeneratedColumn<String>(
       'line_note', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _lineOrderMeta =
+      const VerificationMeta('lineOrder');
+  @override
+  late final GeneratedColumn<int> lineOrder = GeneratedColumn<int>(
+      'line_order', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -3705,12 +3744,18 @@ class $InvoiceLinesTable extends InvoiceLines
         productId,
         productCode,
         productName,
+        realProductId,
+        realProductCode,
+        realProductName,
         unitNumber,
         unitName,
         quantity,
         price,
+        priceRetailSnapshot,
+        priceWholesaleSnapshot,
         isGift,
-        lineNote
+        lineNote,
+        lineOrder
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3749,6 +3794,24 @@ class $InvoiceLinesTable extends InvoiceLines
           productName.isAcceptableOrUnknown(
               data['product_name']!, _productNameMeta));
     }
+    if (data.containsKey('real_product_id')) {
+      context.handle(
+          _realProductIdMeta,
+          realProductId.isAcceptableOrUnknown(
+              data['real_product_id']!, _realProductIdMeta));
+    }
+    if (data.containsKey('real_product_code')) {
+      context.handle(
+          _realProductCodeMeta,
+          realProductCode.isAcceptableOrUnknown(
+              data['real_product_code']!, _realProductCodeMeta));
+    }
+    if (data.containsKey('real_product_name')) {
+      context.handle(
+          _realProductNameMeta,
+          realProductName.isAcceptableOrUnknown(
+              data['real_product_name']!, _realProductNameMeta));
+    }
     if (data.containsKey('unit_number')) {
       context.handle(
           _unitNumberMeta,
@@ -3773,6 +3836,18 @@ class $InvoiceLinesTable extends InvoiceLines
     } else if (isInserting) {
       context.missing(_priceMeta);
     }
+    if (data.containsKey('price_retail_snapshot')) {
+      context.handle(
+          _priceRetailSnapshotMeta,
+          priceRetailSnapshot.isAcceptableOrUnknown(
+              data['price_retail_snapshot']!, _priceRetailSnapshotMeta));
+    }
+    if (data.containsKey('price_wholesale_snapshot')) {
+      context.handle(
+          _priceWholesaleSnapshotMeta,
+          priceWholesaleSnapshot.isAcceptableOrUnknown(
+              data['price_wholesale_snapshot']!, _priceWholesaleSnapshotMeta));
+    }
     if (data.containsKey('is_gift')) {
       context.handle(_isGiftMeta,
           isGift.isAcceptableOrUnknown(data['is_gift']!, _isGiftMeta));
@@ -3780,6 +3855,10 @@ class $InvoiceLinesTable extends InvoiceLines
     if (data.containsKey('line_note')) {
       context.handle(_lineNoteMeta,
           lineNote.isAcceptableOrUnknown(data['line_note']!, _lineNoteMeta));
+    }
+    if (data.containsKey('line_order')) {
+      context.handle(_lineOrderMeta,
+          lineOrder.isAcceptableOrUnknown(data['line_order']!, _lineOrderMeta));
     }
     return context;
   }
@@ -3800,6 +3879,12 @@ class $InvoiceLinesTable extends InvoiceLines
           .read(DriftSqlType.string, data['${effectivePrefix}product_code']),
       productName: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}product_name']),
+      realProductId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}real_product_id']),
+      realProductCode: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}real_product_code']),
+      realProductName: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}real_product_name']),
       unitNumber: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}unit_number'])!,
       unitName: attachedDatabase.typeMapping
@@ -3808,10 +3893,17 @@ class $InvoiceLinesTable extends InvoiceLines
           .read(DriftSqlType.double, data['${effectivePrefix}quantity'])!,
       price: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}price'])!,
+      priceRetailSnapshot: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}price_retail_snapshot']),
+      priceWholesaleSnapshot: attachedDatabase.typeMapping.read(
+          DriftSqlType.double,
+          data['${effectivePrefix}price_wholesale_snapshot']),
       isGift: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_gift'])!,
       lineNote: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}line_note']),
+      lineOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}line_order']),
     );
   }
 
@@ -3827,24 +3919,36 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
   final int productId;
   final String? productCode;
   final String? productName;
+  final int? realProductId;
+  final String? realProductCode;
+  final String? realProductName;
   final int unitNumber;
   final String? unitName;
   final double quantity;
   final double price;
+  final double? priceRetailSnapshot;
+  final double? priceWholesaleSnapshot;
   final bool isGift;
   final String? lineNote;
+  final int? lineOrder;
   const InvoiceLine(
       {required this.id,
       required this.invoiceId,
       required this.productId,
       this.productCode,
       this.productName,
+      this.realProductId,
+      this.realProductCode,
+      this.realProductName,
       required this.unitNumber,
       this.unitName,
       required this.quantity,
       required this.price,
+      this.priceRetailSnapshot,
+      this.priceWholesaleSnapshot,
       required this.isGift,
-      this.lineNote});
+      this.lineNote,
+      this.lineOrder});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -3857,15 +3961,34 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
     if (!nullToAbsent || productName != null) {
       map['product_name'] = Variable<String>(productName);
     }
+    if (!nullToAbsent || realProductId != null) {
+      map['real_product_id'] = Variable<int>(realProductId);
+    }
+    if (!nullToAbsent || realProductCode != null) {
+      map['real_product_code'] = Variable<String>(realProductCode);
+    }
+    if (!nullToAbsent || realProductName != null) {
+      map['real_product_name'] = Variable<String>(realProductName);
+    }
     map['unit_number'] = Variable<int>(unitNumber);
     if (!nullToAbsent || unitName != null) {
       map['unit_name'] = Variable<String>(unitName);
     }
     map['quantity'] = Variable<double>(quantity);
     map['price'] = Variable<double>(price);
+    if (!nullToAbsent || priceRetailSnapshot != null) {
+      map['price_retail_snapshot'] = Variable<double>(priceRetailSnapshot);
+    }
+    if (!nullToAbsent || priceWholesaleSnapshot != null) {
+      map['price_wholesale_snapshot'] =
+          Variable<double>(priceWholesaleSnapshot);
+    }
     map['is_gift'] = Variable<bool>(isGift);
     if (!nullToAbsent || lineNote != null) {
       map['line_note'] = Variable<String>(lineNote);
+    }
+    if (!nullToAbsent || lineOrder != null) {
+      map['line_order'] = Variable<int>(lineOrder);
     }
     return map;
   }
@@ -3881,16 +4004,34 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
       productName: productName == null && nullToAbsent
           ? const Value.absent()
           : Value(productName),
+      realProductId: realProductId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(realProductId),
+      realProductCode: realProductCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(realProductCode),
+      realProductName: realProductName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(realProductName),
       unitNumber: Value(unitNumber),
       unitName: unitName == null && nullToAbsent
           ? const Value.absent()
           : Value(unitName),
       quantity: Value(quantity),
       price: Value(price),
+      priceRetailSnapshot: priceRetailSnapshot == null && nullToAbsent
+          ? const Value.absent()
+          : Value(priceRetailSnapshot),
+      priceWholesaleSnapshot: priceWholesaleSnapshot == null && nullToAbsent
+          ? const Value.absent()
+          : Value(priceWholesaleSnapshot),
       isGift: Value(isGift),
       lineNote: lineNote == null && nullToAbsent
           ? const Value.absent()
           : Value(lineNote),
+      lineOrder: lineOrder == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lineOrder),
     );
   }
 
@@ -3903,12 +4044,20 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
       productId: serializer.fromJson<int>(json['productId']),
       productCode: serializer.fromJson<String?>(json['productCode']),
       productName: serializer.fromJson<String?>(json['productName']),
+      realProductId: serializer.fromJson<int?>(json['realProductId']),
+      realProductCode: serializer.fromJson<String?>(json['realProductCode']),
+      realProductName: serializer.fromJson<String?>(json['realProductName']),
       unitNumber: serializer.fromJson<int>(json['unitNumber']),
       unitName: serializer.fromJson<String?>(json['unitName']),
       quantity: serializer.fromJson<double>(json['quantity']),
       price: serializer.fromJson<double>(json['price']),
+      priceRetailSnapshot:
+          serializer.fromJson<double?>(json['priceRetailSnapshot']),
+      priceWholesaleSnapshot:
+          serializer.fromJson<double?>(json['priceWholesaleSnapshot']),
       isGift: serializer.fromJson<bool>(json['isGift']),
       lineNote: serializer.fromJson<String?>(json['lineNote']),
+      lineOrder: serializer.fromJson<int?>(json['lineOrder']),
     );
   }
   @override
@@ -3920,12 +4069,19 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
       'productId': serializer.toJson<int>(productId),
       'productCode': serializer.toJson<String?>(productCode),
       'productName': serializer.toJson<String?>(productName),
+      'realProductId': serializer.toJson<int?>(realProductId),
+      'realProductCode': serializer.toJson<String?>(realProductCode),
+      'realProductName': serializer.toJson<String?>(realProductName),
       'unitNumber': serializer.toJson<int>(unitNumber),
       'unitName': serializer.toJson<String?>(unitName),
       'quantity': serializer.toJson<double>(quantity),
       'price': serializer.toJson<double>(price),
+      'priceRetailSnapshot': serializer.toJson<double?>(priceRetailSnapshot),
+      'priceWholesaleSnapshot':
+          serializer.toJson<double?>(priceWholesaleSnapshot),
       'isGift': serializer.toJson<bool>(isGift),
       'lineNote': serializer.toJson<String?>(lineNote),
+      'lineOrder': serializer.toJson<int?>(lineOrder),
     };
   }
 
@@ -3935,24 +4091,45 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
           int? productId,
           Value<String?> productCode = const Value.absent(),
           Value<String?> productName = const Value.absent(),
+          Value<int?> realProductId = const Value.absent(),
+          Value<String?> realProductCode = const Value.absent(),
+          Value<String?> realProductName = const Value.absent(),
           int? unitNumber,
           Value<String?> unitName = const Value.absent(),
           double? quantity,
           double? price,
+          Value<double?> priceRetailSnapshot = const Value.absent(),
+          Value<double?> priceWholesaleSnapshot = const Value.absent(),
           bool? isGift,
-          Value<String?> lineNote = const Value.absent()}) =>
+          Value<String?> lineNote = const Value.absent(),
+          Value<int?> lineOrder = const Value.absent()}) =>
       InvoiceLine(
         id: id ?? this.id,
         invoiceId: invoiceId ?? this.invoiceId,
         productId: productId ?? this.productId,
         productCode: productCode.present ? productCode.value : this.productCode,
         productName: productName.present ? productName.value : this.productName,
+        realProductId:
+            realProductId.present ? realProductId.value : this.realProductId,
+        realProductCode: realProductCode.present
+            ? realProductCode.value
+            : this.realProductCode,
+        realProductName: realProductName.present
+            ? realProductName.value
+            : this.realProductName,
         unitNumber: unitNumber ?? this.unitNumber,
         unitName: unitName.present ? unitName.value : this.unitName,
         quantity: quantity ?? this.quantity,
         price: price ?? this.price,
+        priceRetailSnapshot: priceRetailSnapshot.present
+            ? priceRetailSnapshot.value
+            : this.priceRetailSnapshot,
+        priceWholesaleSnapshot: priceWholesaleSnapshot.present
+            ? priceWholesaleSnapshot.value
+            : this.priceWholesaleSnapshot,
         isGift: isGift ?? this.isGift,
         lineNote: lineNote.present ? lineNote.value : this.lineNote,
+        lineOrder: lineOrder.present ? lineOrder.value : this.lineOrder,
       );
   InvoiceLine copyWithCompanion(InvoiceLinesCompanion data) {
     return InvoiceLine(
@@ -3963,13 +4140,29 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
           data.productCode.present ? data.productCode.value : this.productCode,
       productName:
           data.productName.present ? data.productName.value : this.productName,
+      realProductId: data.realProductId.present
+          ? data.realProductId.value
+          : this.realProductId,
+      realProductCode: data.realProductCode.present
+          ? data.realProductCode.value
+          : this.realProductCode,
+      realProductName: data.realProductName.present
+          ? data.realProductName.value
+          : this.realProductName,
       unitNumber:
           data.unitNumber.present ? data.unitNumber.value : this.unitNumber,
       unitName: data.unitName.present ? data.unitName.value : this.unitName,
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
       price: data.price.present ? data.price.value : this.price,
+      priceRetailSnapshot: data.priceRetailSnapshot.present
+          ? data.priceRetailSnapshot.value
+          : this.priceRetailSnapshot,
+      priceWholesaleSnapshot: data.priceWholesaleSnapshot.present
+          ? data.priceWholesaleSnapshot.value
+          : this.priceWholesaleSnapshot,
       isGift: data.isGift.present ? data.isGift.value : this.isGift,
       lineNote: data.lineNote.present ? data.lineNote.value : this.lineNote,
+      lineOrder: data.lineOrder.present ? data.lineOrder.value : this.lineOrder,
     );
   }
 
@@ -3981,19 +4174,41 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
           ..write('productId: $productId, ')
           ..write('productCode: $productCode, ')
           ..write('productName: $productName, ')
+          ..write('realProductId: $realProductId, ')
+          ..write('realProductCode: $realProductCode, ')
+          ..write('realProductName: $realProductName, ')
           ..write('unitNumber: $unitNumber, ')
           ..write('unitName: $unitName, ')
           ..write('quantity: $quantity, ')
           ..write('price: $price, ')
+          ..write('priceRetailSnapshot: $priceRetailSnapshot, ')
+          ..write('priceWholesaleSnapshot: $priceWholesaleSnapshot, ')
           ..write('isGift: $isGift, ')
-          ..write('lineNote: $lineNote')
+          ..write('lineNote: $lineNote, ')
+          ..write('lineOrder: $lineOrder')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, invoiceId, productId, productCode,
-      productName, unitNumber, unitName, quantity, price, isGift, lineNote);
+  int get hashCode => Object.hash(
+      id,
+      invoiceId,
+      productId,
+      productCode,
+      productName,
+      realProductId,
+      realProductCode,
+      realProductName,
+      unitNumber,
+      unitName,
+      quantity,
+      price,
+      priceRetailSnapshot,
+      priceWholesaleSnapshot,
+      isGift,
+      lineNote,
+      lineOrder);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4003,12 +4218,18 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
           other.productId == this.productId &&
           other.productCode == this.productCode &&
           other.productName == this.productName &&
+          other.realProductId == this.realProductId &&
+          other.realProductCode == this.realProductCode &&
+          other.realProductName == this.realProductName &&
           other.unitNumber == this.unitNumber &&
           other.unitName == this.unitName &&
           other.quantity == this.quantity &&
           other.price == this.price &&
+          other.priceRetailSnapshot == this.priceRetailSnapshot &&
+          other.priceWholesaleSnapshot == this.priceWholesaleSnapshot &&
           other.isGift == this.isGift &&
-          other.lineNote == this.lineNote);
+          other.lineNote == this.lineNote &&
+          other.lineOrder == this.lineOrder);
 }
 
 class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
@@ -4017,24 +4238,36 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
   final Value<int> productId;
   final Value<String?> productCode;
   final Value<String?> productName;
+  final Value<int?> realProductId;
+  final Value<String?> realProductCode;
+  final Value<String?> realProductName;
   final Value<int> unitNumber;
   final Value<String?> unitName;
   final Value<double> quantity;
   final Value<double> price;
+  final Value<double?> priceRetailSnapshot;
+  final Value<double?> priceWholesaleSnapshot;
   final Value<bool> isGift;
   final Value<String?> lineNote;
+  final Value<int?> lineOrder;
   const InvoiceLinesCompanion({
     this.id = const Value.absent(),
     this.invoiceId = const Value.absent(),
     this.productId = const Value.absent(),
     this.productCode = const Value.absent(),
     this.productName = const Value.absent(),
+    this.realProductId = const Value.absent(),
+    this.realProductCode = const Value.absent(),
+    this.realProductName = const Value.absent(),
     this.unitNumber = const Value.absent(),
     this.unitName = const Value.absent(),
     this.quantity = const Value.absent(),
     this.price = const Value.absent(),
+    this.priceRetailSnapshot = const Value.absent(),
+    this.priceWholesaleSnapshot = const Value.absent(),
     this.isGift = const Value.absent(),
     this.lineNote = const Value.absent(),
+    this.lineOrder = const Value.absent(),
   });
   InvoiceLinesCompanion.insert({
     this.id = const Value.absent(),
@@ -4042,12 +4275,18 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
     required int productId,
     this.productCode = const Value.absent(),
     this.productName = const Value.absent(),
+    this.realProductId = const Value.absent(),
+    this.realProductCode = const Value.absent(),
+    this.realProductName = const Value.absent(),
     required int unitNumber,
     this.unitName = const Value.absent(),
     required double quantity,
     required double price,
+    this.priceRetailSnapshot = const Value.absent(),
+    this.priceWholesaleSnapshot = const Value.absent(),
     this.isGift = const Value.absent(),
     this.lineNote = const Value.absent(),
+    this.lineOrder = const Value.absent(),
   })  : invoiceId = Value(invoiceId),
         productId = Value(productId),
         unitNumber = Value(unitNumber),
@@ -4059,12 +4298,18 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
     Expression<int>? productId,
     Expression<String>? productCode,
     Expression<String>? productName,
+    Expression<int>? realProductId,
+    Expression<String>? realProductCode,
+    Expression<String>? realProductName,
     Expression<int>? unitNumber,
     Expression<String>? unitName,
     Expression<double>? quantity,
     Expression<double>? price,
+    Expression<double>? priceRetailSnapshot,
+    Expression<double>? priceWholesaleSnapshot,
     Expression<bool>? isGift,
     Expression<String>? lineNote,
+    Expression<int>? lineOrder,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -4072,12 +4317,20 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
       if (productId != null) 'product_id': productId,
       if (productCode != null) 'product_code': productCode,
       if (productName != null) 'product_name': productName,
+      if (realProductId != null) 'real_product_id': realProductId,
+      if (realProductCode != null) 'real_product_code': realProductCode,
+      if (realProductName != null) 'real_product_name': realProductName,
       if (unitNumber != null) 'unit_number': unitNumber,
       if (unitName != null) 'unit_name': unitName,
       if (quantity != null) 'quantity': quantity,
       if (price != null) 'price': price,
+      if (priceRetailSnapshot != null)
+        'price_retail_snapshot': priceRetailSnapshot,
+      if (priceWholesaleSnapshot != null)
+        'price_wholesale_snapshot': priceWholesaleSnapshot,
       if (isGift != null) 'is_gift': isGift,
       if (lineNote != null) 'line_note': lineNote,
+      if (lineOrder != null) 'line_order': lineOrder,
     });
   }
 
@@ -4087,24 +4340,37 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
       Value<int>? productId,
       Value<String?>? productCode,
       Value<String?>? productName,
+      Value<int?>? realProductId,
+      Value<String?>? realProductCode,
+      Value<String?>? realProductName,
       Value<int>? unitNumber,
       Value<String?>? unitName,
       Value<double>? quantity,
       Value<double>? price,
+      Value<double?>? priceRetailSnapshot,
+      Value<double?>? priceWholesaleSnapshot,
       Value<bool>? isGift,
-      Value<String?>? lineNote}) {
+      Value<String?>? lineNote,
+      Value<int?>? lineOrder}) {
     return InvoiceLinesCompanion(
       id: id ?? this.id,
       invoiceId: invoiceId ?? this.invoiceId,
       productId: productId ?? this.productId,
       productCode: productCode ?? this.productCode,
       productName: productName ?? this.productName,
+      realProductId: realProductId ?? this.realProductId,
+      realProductCode: realProductCode ?? this.realProductCode,
+      realProductName: realProductName ?? this.realProductName,
       unitNumber: unitNumber ?? this.unitNumber,
       unitName: unitName ?? this.unitName,
       quantity: quantity ?? this.quantity,
       price: price ?? this.price,
+      priceRetailSnapshot: priceRetailSnapshot ?? this.priceRetailSnapshot,
+      priceWholesaleSnapshot:
+          priceWholesaleSnapshot ?? this.priceWholesaleSnapshot,
       isGift: isGift ?? this.isGift,
       lineNote: lineNote ?? this.lineNote,
+      lineOrder: lineOrder ?? this.lineOrder,
     );
   }
 
@@ -4126,6 +4392,15 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
     if (productName.present) {
       map['product_name'] = Variable<String>(productName.value);
     }
+    if (realProductId.present) {
+      map['real_product_id'] = Variable<int>(realProductId.value);
+    }
+    if (realProductCode.present) {
+      map['real_product_code'] = Variable<String>(realProductCode.value);
+    }
+    if (realProductName.present) {
+      map['real_product_name'] = Variable<String>(realProductName.value);
+    }
     if (unitNumber.present) {
       map['unit_number'] = Variable<int>(unitNumber.value);
     }
@@ -4138,11 +4413,22 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
     if (price.present) {
       map['price'] = Variable<double>(price.value);
     }
+    if (priceRetailSnapshot.present) {
+      map['price_retail_snapshot'] =
+          Variable<double>(priceRetailSnapshot.value);
+    }
+    if (priceWholesaleSnapshot.present) {
+      map['price_wholesale_snapshot'] =
+          Variable<double>(priceWholesaleSnapshot.value);
+    }
     if (isGift.present) {
       map['is_gift'] = Variable<bool>(isGift.value);
     }
     if (lineNote.present) {
       map['line_note'] = Variable<String>(lineNote.value);
+    }
+    if (lineOrder.present) {
+      map['line_order'] = Variable<int>(lineOrder.value);
     }
     return map;
   }
@@ -4155,12 +4441,18 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
           ..write('productId: $productId, ')
           ..write('productCode: $productCode, ')
           ..write('productName: $productName, ')
+          ..write('realProductId: $realProductId, ')
+          ..write('realProductCode: $realProductCode, ')
+          ..write('realProductName: $realProductName, ')
           ..write('unitNumber: $unitNumber, ')
           ..write('unitName: $unitName, ')
           ..write('quantity: $quantity, ')
           ..write('price: $price, ')
+          ..write('priceRetailSnapshot: $priceRetailSnapshot, ')
+          ..write('priceWholesaleSnapshot: $priceWholesaleSnapshot, ')
           ..write('isGift: $isGift, ')
-          ..write('lineNote: $lineNote')
+          ..write('lineNote: $lineNote, ')
+          ..write('lineOrder: $lineOrder')
           ..write(')'))
         .toString();
   }
@@ -6500,19 +6792,6 @@ class $$ProductsTableFilterComposer
     return composer;
   }
 
-  ComposableFilter invoiceLinesRefs(
-      ComposableFilter Function($$InvoiceLinesTableFilterComposer f) f) {
-    final $$InvoiceLinesTableFilterComposer composer = $state.composerBuilder(
-        composer: this,
-        getCurrentColumn: (t) => t.id,
-        referencedTable: $state.db.invoiceLines,
-        getReferencedColumn: (t) => t.productId,
-        builder: (joinBuilder, parentComposers) =>
-            $$InvoiceLinesTableFilterComposer(ComposerState($state.db,
-                $state.db.invoiceLines, joinBuilder, parentComposers)));
-    return f(composer);
-  }
-
   ComposableFilter transferLinesRefs(
       ComposableFilter Function($$TransferLinesTableFilterComposer f) f) {
     final $$TransferLinesTableFilterComposer composer = $state.composerBuilder(
@@ -7134,12 +7413,18 @@ typedef $$InvoiceLinesTableCreateCompanionBuilder = InvoiceLinesCompanion
   required int productId,
   Value<String?> productCode,
   Value<String?> productName,
+  Value<int?> realProductId,
+  Value<String?> realProductCode,
+  Value<String?> realProductName,
   required int unitNumber,
   Value<String?> unitName,
   required double quantity,
   required double price,
+  Value<double?> priceRetailSnapshot,
+  Value<double?> priceWholesaleSnapshot,
   Value<bool> isGift,
   Value<String?> lineNote,
+  Value<int?> lineOrder,
 });
 typedef $$InvoiceLinesTableUpdateCompanionBuilder = InvoiceLinesCompanion
     Function({
@@ -7148,12 +7433,18 @@ typedef $$InvoiceLinesTableUpdateCompanionBuilder = InvoiceLinesCompanion
   Value<int> productId,
   Value<String?> productCode,
   Value<String?> productName,
+  Value<int?> realProductId,
+  Value<String?> realProductCode,
+  Value<String?> realProductName,
   Value<int> unitNumber,
   Value<String?> unitName,
   Value<double> quantity,
   Value<double> price,
+  Value<double?> priceRetailSnapshot,
+  Value<double?> priceWholesaleSnapshot,
   Value<bool> isGift,
   Value<String?> lineNote,
+  Value<int?> lineOrder,
 });
 
 class $$InvoiceLinesTableTableManager extends RootTableManager<
@@ -7178,12 +7469,18 @@ class $$InvoiceLinesTableTableManager extends RootTableManager<
             Value<int> productId = const Value.absent(),
             Value<String?> productCode = const Value.absent(),
             Value<String?> productName = const Value.absent(),
+            Value<int?> realProductId = const Value.absent(),
+            Value<String?> realProductCode = const Value.absent(),
+            Value<String?> realProductName = const Value.absent(),
             Value<int> unitNumber = const Value.absent(),
             Value<String?> unitName = const Value.absent(),
             Value<double> quantity = const Value.absent(),
             Value<double> price = const Value.absent(),
+            Value<double?> priceRetailSnapshot = const Value.absent(),
+            Value<double?> priceWholesaleSnapshot = const Value.absent(),
             Value<bool> isGift = const Value.absent(),
             Value<String?> lineNote = const Value.absent(),
+            Value<int?> lineOrder = const Value.absent(),
           }) =>
               InvoiceLinesCompanion(
             id: id,
@@ -7191,12 +7488,18 @@ class $$InvoiceLinesTableTableManager extends RootTableManager<
             productId: productId,
             productCode: productCode,
             productName: productName,
+            realProductId: realProductId,
+            realProductCode: realProductCode,
+            realProductName: realProductName,
             unitNumber: unitNumber,
             unitName: unitName,
             quantity: quantity,
             price: price,
+            priceRetailSnapshot: priceRetailSnapshot,
+            priceWholesaleSnapshot: priceWholesaleSnapshot,
             isGift: isGift,
             lineNote: lineNote,
+            lineOrder: lineOrder,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -7204,12 +7507,18 @@ class $$InvoiceLinesTableTableManager extends RootTableManager<
             required int productId,
             Value<String?> productCode = const Value.absent(),
             Value<String?> productName = const Value.absent(),
+            Value<int?> realProductId = const Value.absent(),
+            Value<String?> realProductCode = const Value.absent(),
+            Value<String?> realProductName = const Value.absent(),
             required int unitNumber,
             Value<String?> unitName = const Value.absent(),
             required double quantity,
             required double price,
+            Value<double?> priceRetailSnapshot = const Value.absent(),
+            Value<double?> priceWholesaleSnapshot = const Value.absent(),
             Value<bool> isGift = const Value.absent(),
             Value<String?> lineNote = const Value.absent(),
+            Value<int?> lineOrder = const Value.absent(),
           }) =>
               InvoiceLinesCompanion.insert(
             id: id,
@@ -7217,12 +7526,18 @@ class $$InvoiceLinesTableTableManager extends RootTableManager<
             productId: productId,
             productCode: productCode,
             productName: productName,
+            realProductId: realProductId,
+            realProductCode: realProductCode,
+            realProductName: realProductName,
             unitNumber: unitNumber,
             unitName: unitName,
             quantity: quantity,
             price: price,
+            priceRetailSnapshot: priceRetailSnapshot,
+            priceWholesaleSnapshot: priceWholesaleSnapshot,
             isGift: isGift,
             lineNote: lineNote,
+            lineOrder: lineOrder,
           ),
         ));
 }
@@ -7242,6 +7557,16 @@ class $$InvoiceLinesTableFilterComposer
 
   ColumnFilters<String> get productName => $state.composableBuilder(
       column: $state.table.productName,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get realProductCode => $state.composableBuilder(
+      column: $state.table.realProductCode,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get realProductName => $state.composableBuilder(
+      column: $state.table.realProductName,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -7265,6 +7590,16 @@ class $$InvoiceLinesTableFilterComposer
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
+  ColumnFilters<double> get priceRetailSnapshot => $state.composableBuilder(
+      column: $state.table.priceRetailSnapshot,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<double> get priceWholesaleSnapshot => $state.composableBuilder(
+      column: $state.table.priceWholesaleSnapshot,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
   ColumnFilters<bool> get isGift => $state.composableBuilder(
       column: $state.table.isGift,
       builder: (column, joinBuilders) =>
@@ -7272,6 +7607,11 @@ class $$InvoiceLinesTableFilterComposer
 
   ColumnFilters<String> get lineNote => $state.composableBuilder(
       column: $state.table.lineNote,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<int> get lineOrder => $state.composableBuilder(
+      column: $state.table.lineOrder,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -7291,6 +7631,18 @@ class $$InvoiceLinesTableFilterComposer
     final $$ProductsTableFilterComposer composer = $state.composerBuilder(
         composer: this,
         getCurrentColumn: (t) => t.productId,
+        referencedTable: $state.db.products,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder, parentComposers) =>
+            $$ProductsTableFilterComposer(ComposerState(
+                $state.db, $state.db.products, joinBuilder, parentComposers)));
+    return composer;
+  }
+
+  $$ProductsTableFilterComposer get realProductId {
+    final $$ProductsTableFilterComposer composer = $state.composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.realProductId,
         referencedTable: $state.db.products,
         getReferencedColumn: (t) => t.id,
         builder: (joinBuilder, parentComposers) =>
@@ -7318,6 +7670,16 @@ class $$InvoiceLinesTableOrderingComposer
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
+  ColumnOrderings<String> get realProductCode => $state.composableBuilder(
+      column: $state.table.realProductCode,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get realProductName => $state.composableBuilder(
+      column: $state.table.realProductName,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
   ColumnOrderings<int> get unitNumber => $state.composableBuilder(
       column: $state.table.unitNumber,
       builder: (column, joinBuilders) =>
@@ -7338,6 +7700,17 @@ class $$InvoiceLinesTableOrderingComposer
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
+  ColumnOrderings<double> get priceRetailSnapshot => $state.composableBuilder(
+      column: $state.table.priceRetailSnapshot,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<double> get priceWholesaleSnapshot =>
+      $state.composableBuilder(
+          column: $state.table.priceWholesaleSnapshot,
+          builder: (column, joinBuilders) =>
+              ColumnOrderings(column, joinBuilders: joinBuilders));
+
   ColumnOrderings<bool> get isGift => $state.composableBuilder(
       column: $state.table.isGift,
       builder: (column, joinBuilders) =>
@@ -7345,6 +7718,11 @@ class $$InvoiceLinesTableOrderingComposer
 
   ColumnOrderings<String> get lineNote => $state.composableBuilder(
       column: $state.table.lineNote,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<int> get lineOrder => $state.composableBuilder(
+      column: $state.table.lineOrder,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
@@ -7364,6 +7742,18 @@ class $$InvoiceLinesTableOrderingComposer
     final $$ProductsTableOrderingComposer composer = $state.composerBuilder(
         composer: this,
         getCurrentColumn: (t) => t.productId,
+        referencedTable: $state.db.products,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder, parentComposers) =>
+            $$ProductsTableOrderingComposer(ComposerState(
+                $state.db, $state.db.products, joinBuilder, parentComposers)));
+    return composer;
+  }
+
+  $$ProductsTableOrderingComposer get realProductId {
+    final $$ProductsTableOrderingComposer composer = $state.composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.realProductId,
         referencedTable: $state.db.products,
         getReferencedColumn: (t) => t.id,
         builder: (joinBuilder, parentComposers) =>

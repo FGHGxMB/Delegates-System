@@ -116,6 +116,14 @@ class CatalogDao {
         .get();
     return result.isNotEmpty;
   }
+
+  // جلب المواد الفعالة لمجموعة معينة (لشاشة اختيار المواد)
+  Stream<List<Product>> watchActiveProductsByCategory(int categoryId) {
+    return (db.select(db.products)
+      ..where((t) => t.isActive.equals(true) & t.categoryId.equals(categoryId))
+      ..orderBy([(t) => OrderingTerm(expression: t.displayOrder)]))
+        .watch();
+  }
 }
 
 // المزود (Provider)

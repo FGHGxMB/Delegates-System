@@ -10,6 +10,8 @@ import 'screens/settings/product_form_screen.dart';
 import 'screens/settings/accounts_screen.dart';
 import 'screens/customers/customers_list_screen.dart';
 import 'screens/customers/customer_form_screen.dart';
+import 'screens/invoices/invoices_list_screen.dart';
+import 'screens/invoices/invoice_form_screen.dart';
 
 // استيراد الشاشات الحقيقية
 import 'screens/settings/settings_screen.dart';
@@ -73,7 +75,7 @@ final goRouter = GoRouter(
       builder: (context, state, child) => MainShell(child: child),
       routes: [
         GoRoute(path: '/', builder: (context, state) => const TempScreen(title: AppStrings.homeTitle)),
-        GoRoute(path: '/invoices', builder: (context, state) => const TempScreen(title: AppStrings.invoices)),
+        GoRoute(path: '/invoices', builder: (context, state) => const InvoicesListScreen()),
         GoRoute(path: '/transfers', builder: (context, state) => const TempScreen(title: AppStrings.transfers)),
         GoRoute(path: '/customers', builder: (context, state) => const CustomersListScreen()),
         // ربط شاشة الإعدادات الحقيقية
@@ -122,6 +124,15 @@ final goRouter = GoRouter(
       builder: (context, state) {
         final customerId = int.parse(state.pathParameters['customerId']!);
         return CustomerFormScreen(customerId: customerId);
+      },
+    ),
+    // مسار الفاتورة (مبيعات أو مرتجعات)
+    GoRoute(
+      path: '/invoice_form/:type/:invoiceId',
+      builder: (context, state) {
+        final type = state.pathParameters['type']!;
+        final invoiceId = int.parse(state.pathParameters['invoiceId']!);
+        return InvoiceFormScreen(type: type, invoiceId: invoiceId);
       },
     ),
   ],
