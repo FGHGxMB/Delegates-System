@@ -1176,14 +1176,6 @@ class $ProductCategoriesTable extends ProductCategories
       type: DriftSqlType.string,
       requiredDuringInsert: true,
       defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
-  static const VerificationMeta _displayOrderMeta =
-      const VerificationMeta('displayOrder');
-  @override
-  late final GeneratedColumn<int> displayOrder = GeneratedColumn<int>(
-      'display_order', aliasedName, false,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultValue: const Constant(0));
   static const VerificationMeta _gridColumnsMeta =
       const VerificationMeta('gridColumns');
   @override
@@ -1192,8 +1184,27 @@ class $ProductCategoriesTable extends ProductCategories
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(2));
+  static const VerificationMeta _isHiddenMeta =
+      const VerificationMeta('isHidden');
   @override
-  List<GeneratedColumn> get $columns => [id, name, displayOrder, gridColumns];
+  late final GeneratedColumn<bool> isHidden = GeneratedColumn<bool>(
+      'is_hidden', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_hidden" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _displayOrderMeta =
+      const VerificationMeta('displayOrder');
+  @override
+  late final GeneratedColumn<int> displayOrder = GeneratedColumn<int>(
+      'display_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, name, gridColumns, isHidden, displayOrder];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1213,17 +1224,21 @@ class $ProductCategoriesTable extends ProductCategories
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
-    if (data.containsKey('display_order')) {
-      context.handle(
-          _displayOrderMeta,
-          displayOrder.isAcceptableOrUnknown(
-              data['display_order']!, _displayOrderMeta));
-    }
     if (data.containsKey('grid_columns')) {
       context.handle(
           _gridColumnsMeta,
           gridColumns.isAcceptableOrUnknown(
               data['grid_columns']!, _gridColumnsMeta));
+    }
+    if (data.containsKey('is_hidden')) {
+      context.handle(_isHiddenMeta,
+          isHidden.isAcceptableOrUnknown(data['is_hidden']!, _isHiddenMeta));
+    }
+    if (data.containsKey('display_order')) {
+      context.handle(
+          _displayOrderMeta,
+          displayOrder.isAcceptableOrUnknown(
+              data['display_order']!, _displayOrderMeta));
     }
     return context;
   }
@@ -1238,10 +1253,12 @@ class $ProductCategoriesTable extends ProductCategories
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
-      displayOrder: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}display_order'])!,
       gridColumns: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}grid_columns'])!,
+      isHidden: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_hidden'])!,
+      displayOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}display_order'])!,
     );
   }
 
@@ -1254,20 +1271,23 @@ class $ProductCategoriesTable extends ProductCategories
 class ProductCategory extends DataClass implements Insertable<ProductCategory> {
   final int id;
   final String name;
-  final int displayOrder;
   final int gridColumns;
+  final bool isHidden;
+  final int displayOrder;
   const ProductCategory(
       {required this.id,
       required this.name,
-      required this.displayOrder,
-      required this.gridColumns});
+      required this.gridColumns,
+      required this.isHidden,
+      required this.displayOrder});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
-    map['display_order'] = Variable<int>(displayOrder);
     map['grid_columns'] = Variable<int>(gridColumns);
+    map['is_hidden'] = Variable<bool>(isHidden);
+    map['display_order'] = Variable<int>(displayOrder);
     return map;
   }
 
@@ -1275,8 +1295,9 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
     return ProductCategoriesCompanion(
       id: Value(id),
       name: Value(name),
-      displayOrder: Value(displayOrder),
       gridColumns: Value(gridColumns),
+      isHidden: Value(isHidden),
+      displayOrder: Value(displayOrder),
     );
   }
 
@@ -1286,8 +1307,9 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
     return ProductCategory(
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
-      displayOrder: serializer.fromJson<int>(json['displayOrder']),
       gridColumns: serializer.fromJson<int>(json['gridColumns']),
+      isHidden: serializer.fromJson<bool>(json['isHidden']),
+      displayOrder: serializer.fromJson<int>(json['displayOrder']),
     );
   }
   @override
@@ -1296,28 +1318,35 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
-      'displayOrder': serializer.toJson<int>(displayOrder),
       'gridColumns': serializer.toJson<int>(gridColumns),
+      'isHidden': serializer.toJson<bool>(isHidden),
+      'displayOrder': serializer.toJson<int>(displayOrder),
     };
   }
 
   ProductCategory copyWith(
-          {int? id, String? name, int? displayOrder, int? gridColumns}) =>
+          {int? id,
+          String? name,
+          int? gridColumns,
+          bool? isHidden,
+          int? displayOrder}) =>
       ProductCategory(
         id: id ?? this.id,
         name: name ?? this.name,
-        displayOrder: displayOrder ?? this.displayOrder,
         gridColumns: gridColumns ?? this.gridColumns,
+        isHidden: isHidden ?? this.isHidden,
+        displayOrder: displayOrder ?? this.displayOrder,
       );
   ProductCategory copyWithCompanion(ProductCategoriesCompanion data) {
     return ProductCategory(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
+      gridColumns:
+          data.gridColumns.present ? data.gridColumns.value : this.gridColumns,
+      isHidden: data.isHidden.present ? data.isHidden.value : this.isHidden,
       displayOrder: data.displayOrder.present
           ? data.displayOrder.value
           : this.displayOrder,
-      gridColumns:
-          data.gridColumns.present ? data.gridColumns.value : this.gridColumns,
     );
   }
 
@@ -1326,65 +1355,75 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
     return (StringBuffer('ProductCategory(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('displayOrder: $displayOrder, ')
-          ..write('gridColumns: $gridColumns')
+          ..write('gridColumns: $gridColumns, ')
+          ..write('isHidden: $isHidden, ')
+          ..write('displayOrder: $displayOrder')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, displayOrder, gridColumns);
+  int get hashCode =>
+      Object.hash(id, name, gridColumns, isHidden, displayOrder);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ProductCategory &&
           other.id == this.id &&
           other.name == this.name &&
-          other.displayOrder == this.displayOrder &&
-          other.gridColumns == this.gridColumns);
+          other.gridColumns == this.gridColumns &&
+          other.isHidden == this.isHidden &&
+          other.displayOrder == this.displayOrder);
 }
 
 class ProductCategoriesCompanion extends UpdateCompanion<ProductCategory> {
   final Value<int> id;
   final Value<String> name;
-  final Value<int> displayOrder;
   final Value<int> gridColumns;
+  final Value<bool> isHidden;
+  final Value<int> displayOrder;
   const ProductCategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
-    this.displayOrder = const Value.absent(),
     this.gridColumns = const Value.absent(),
+    this.isHidden = const Value.absent(),
+    this.displayOrder = const Value.absent(),
   });
   ProductCategoriesCompanion.insert({
     this.id = const Value.absent(),
     required String name,
-    this.displayOrder = const Value.absent(),
     this.gridColumns = const Value.absent(),
+    this.isHidden = const Value.absent(),
+    this.displayOrder = const Value.absent(),
   }) : name = Value(name);
   static Insertable<ProductCategory> custom({
     Expression<int>? id,
     Expression<String>? name,
-    Expression<int>? displayOrder,
     Expression<int>? gridColumns,
+    Expression<bool>? isHidden,
+    Expression<int>? displayOrder,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
-      if (displayOrder != null) 'display_order': displayOrder,
       if (gridColumns != null) 'grid_columns': gridColumns,
+      if (isHidden != null) 'is_hidden': isHidden,
+      if (displayOrder != null) 'display_order': displayOrder,
     });
   }
 
   ProductCategoriesCompanion copyWith(
       {Value<int>? id,
       Value<String>? name,
-      Value<int>? displayOrder,
-      Value<int>? gridColumns}) {
+      Value<int>? gridColumns,
+      Value<bool>? isHidden,
+      Value<int>? displayOrder}) {
     return ProductCategoriesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
-      displayOrder: displayOrder ?? this.displayOrder,
       gridColumns: gridColumns ?? this.gridColumns,
+      isHidden: isHidden ?? this.isHidden,
+      displayOrder: displayOrder ?? this.displayOrder,
     );
   }
 
@@ -1397,11 +1436,14 @@ class ProductCategoriesCompanion extends UpdateCompanion<ProductCategory> {
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
-    if (displayOrder.present) {
-      map['display_order'] = Variable<int>(displayOrder.value);
-    }
     if (gridColumns.present) {
       map['grid_columns'] = Variable<int>(gridColumns.value);
+    }
+    if (isHidden.present) {
+      map['is_hidden'] = Variable<bool>(isHidden.value);
+    }
+    if (displayOrder.present) {
+      map['display_order'] = Variable<int>(displayOrder.value);
     }
     return map;
   }
@@ -1411,8 +1453,316 @@ class ProductCategoriesCompanion extends UpdateCompanion<ProductCategory> {
     return (StringBuffer('ProductCategoriesCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('displayOrder: $displayOrder, ')
-          ..write('gridColumns: $gridColumns')
+          ..write('gridColumns: $gridColumns, ')
+          ..write('isHidden: $isHidden, ')
+          ..write('displayOrder: $displayOrder')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ProductColumnsTable extends ProductColumns
+    with TableInfo<$ProductColumnsTable, ProductColumn> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProductColumnsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _categoryIdMeta =
+      const VerificationMeta('categoryId');
+  @override
+  late final GeneratedColumn<int> categoryId = GeneratedColumn<int>(
+      'category_id', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: true,
+      $customConstraints: 'REFERENCES product_categories(id)');
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _isHiddenMeta =
+      const VerificationMeta('isHidden');
+  @override
+  late final GeneratedColumn<bool> isHidden = GeneratedColumn<bool>(
+      'is_hidden', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_hidden" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _displayOrderMeta =
+      const VerificationMeta('displayOrder');
+  @override
+  late final GeneratedColumn<int> displayOrder = GeneratedColumn<int>(
+      'display_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, categoryId, name, isHidden, displayOrder];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'product_columns';
+  @override
+  VerificationContext validateIntegrity(Insertable<ProductColumn> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+          _categoryIdMeta,
+          categoryId.isAcceptableOrUnknown(
+              data['category_id']!, _categoryIdMeta));
+    } else if (isInserting) {
+      context.missing(_categoryIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('is_hidden')) {
+      context.handle(_isHiddenMeta,
+          isHidden.isAcceptableOrUnknown(data['is_hidden']!, _isHiddenMeta));
+    }
+    if (data.containsKey('display_order')) {
+      context.handle(
+          _displayOrderMeta,
+          displayOrder.isAcceptableOrUnknown(
+              data['display_order']!, _displayOrderMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProductColumn map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProductColumn(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      categoryId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}category_id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      isHidden: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_hidden'])!,
+      displayOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}display_order'])!,
+    );
+  }
+
+  @override
+  $ProductColumnsTable createAlias(String alias) {
+    return $ProductColumnsTable(attachedDatabase, alias);
+  }
+}
+
+class ProductColumn extends DataClass implements Insertable<ProductColumn> {
+  final int id;
+  final int categoryId;
+  final String name;
+  final bool isHidden;
+  final int displayOrder;
+  const ProductColumn(
+      {required this.id,
+      required this.categoryId,
+      required this.name,
+      required this.isHidden,
+      required this.displayOrder});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['category_id'] = Variable<int>(categoryId);
+    map['name'] = Variable<String>(name);
+    map['is_hidden'] = Variable<bool>(isHidden);
+    map['display_order'] = Variable<int>(displayOrder);
+    return map;
+  }
+
+  ProductColumnsCompanion toCompanion(bool nullToAbsent) {
+    return ProductColumnsCompanion(
+      id: Value(id),
+      categoryId: Value(categoryId),
+      name: Value(name),
+      isHidden: Value(isHidden),
+      displayOrder: Value(displayOrder),
+    );
+  }
+
+  factory ProductColumn.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProductColumn(
+      id: serializer.fromJson<int>(json['id']),
+      categoryId: serializer.fromJson<int>(json['categoryId']),
+      name: serializer.fromJson<String>(json['name']),
+      isHidden: serializer.fromJson<bool>(json['isHidden']),
+      displayOrder: serializer.fromJson<int>(json['displayOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'categoryId': serializer.toJson<int>(categoryId),
+      'name': serializer.toJson<String>(name),
+      'isHidden': serializer.toJson<bool>(isHidden),
+      'displayOrder': serializer.toJson<int>(displayOrder),
+    };
+  }
+
+  ProductColumn copyWith(
+          {int? id,
+          int? categoryId,
+          String? name,
+          bool? isHidden,
+          int? displayOrder}) =>
+      ProductColumn(
+        id: id ?? this.id,
+        categoryId: categoryId ?? this.categoryId,
+        name: name ?? this.name,
+        isHidden: isHidden ?? this.isHidden,
+        displayOrder: displayOrder ?? this.displayOrder,
+      );
+  ProductColumn copyWithCompanion(ProductColumnsCompanion data) {
+    return ProductColumn(
+      id: data.id.present ? data.id.value : this.id,
+      categoryId:
+          data.categoryId.present ? data.categoryId.value : this.categoryId,
+      name: data.name.present ? data.name.value : this.name,
+      isHidden: data.isHidden.present ? data.isHidden.value : this.isHidden,
+      displayOrder: data.displayOrder.present
+          ? data.displayOrder.value
+          : this.displayOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductColumn(')
+          ..write('id: $id, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('name: $name, ')
+          ..write('isHidden: $isHidden, ')
+          ..write('displayOrder: $displayOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, categoryId, name, isHidden, displayOrder);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProductColumn &&
+          other.id == this.id &&
+          other.categoryId == this.categoryId &&
+          other.name == this.name &&
+          other.isHidden == this.isHidden &&
+          other.displayOrder == this.displayOrder);
+}
+
+class ProductColumnsCompanion extends UpdateCompanion<ProductColumn> {
+  final Value<int> id;
+  final Value<int> categoryId;
+  final Value<String> name;
+  final Value<bool> isHidden;
+  final Value<int> displayOrder;
+  const ProductColumnsCompanion({
+    this.id = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.isHidden = const Value.absent(),
+    this.displayOrder = const Value.absent(),
+  });
+  ProductColumnsCompanion.insert({
+    this.id = const Value.absent(),
+    required int categoryId,
+    required String name,
+    this.isHidden = const Value.absent(),
+    this.displayOrder = const Value.absent(),
+  })  : categoryId = Value(categoryId),
+        name = Value(name);
+  static Insertable<ProductColumn> custom({
+    Expression<int>? id,
+    Expression<int>? categoryId,
+    Expression<String>? name,
+    Expression<bool>? isHidden,
+    Expression<int>? displayOrder,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (categoryId != null) 'category_id': categoryId,
+      if (name != null) 'name': name,
+      if (isHidden != null) 'is_hidden': isHidden,
+      if (displayOrder != null) 'display_order': displayOrder,
+    });
+  }
+
+  ProductColumnsCompanion copyWith(
+      {Value<int>? id,
+      Value<int>? categoryId,
+      Value<String>? name,
+      Value<bool>? isHidden,
+      Value<int>? displayOrder}) {
+    return ProductColumnsCompanion(
+      id: id ?? this.id,
+      categoryId: categoryId ?? this.categoryId,
+      name: name ?? this.name,
+      isHidden: isHidden ?? this.isHidden,
+      displayOrder: displayOrder ?? this.displayOrder,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<int>(categoryId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (isHidden.present) {
+      map['is_hidden'] = Variable<bool>(isHidden.value);
+    }
+    if (displayOrder.present) {
+      map['display_order'] = Variable<int>(displayOrder.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductColumnsCompanion(')
+          ..write('id: $id, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('name: $name, ')
+          ..write('isHidden: $isHidden, ')
+          ..write('displayOrder: $displayOrder')
           ..write(')'))
         .toString();
   }
@@ -1448,6 +1798,14 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
       requiredDuringInsert: true,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'REFERENCES product_categories (id)'));
+  static const VerificationMeta _columnIdMeta =
+      const VerificationMeta('columnId');
+  @override
+  late final GeneratedColumn<int> columnId = GeneratedColumn<int>(
+      'column_id', aliasedName, true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      $customConstraints: 'REFERENCES product_columns(id)');
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -1578,6 +1936,7 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         id,
         code,
         categoryId,
+        columnId,
         name,
         currency,
         unit1Name,
@@ -1624,6 +1983,10 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
               data['category_id']!, _categoryIdMeta));
     } else if (isInserting) {
       context.missing(_categoryIdMeta);
+    }
+    if (data.containsKey('column_id')) {
+      context.handle(_columnIdMeta,
+          columnId.isAcceptableOrUnknown(data['column_id']!, _columnIdMeta));
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -1748,6 +2111,8 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           .read(DriftSqlType.string, data['${effectivePrefix}code'])!,
       categoryId: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}category_id'])!,
+      columnId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}column_id']),
       name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
       currency: attachedDatabase.typeMapping
@@ -1800,6 +2165,7 @@ class Product extends DataClass implements Insertable<Product> {
   final int id;
   final String code;
   final int categoryId;
+  final int? columnId;
   final String name;
   final String currency;
   final String unit1Name;
@@ -1823,6 +2189,7 @@ class Product extends DataClass implements Insertable<Product> {
       {required this.id,
       required this.code,
       required this.categoryId,
+      this.columnId,
       required this.name,
       required this.currency,
       required this.unit1Name,
@@ -1848,6 +2215,9 @@ class Product extends DataClass implements Insertable<Product> {
     map['id'] = Variable<int>(id);
     map['code'] = Variable<String>(code);
     map['category_id'] = Variable<int>(categoryId);
+    if (!nullToAbsent || columnId != null) {
+      map['column_id'] = Variable<int>(columnId);
+    }
     map['name'] = Variable<String>(name);
     map['currency'] = Variable<String>(currency);
     map['unit1_name'] = Variable<String>(unit1Name);
@@ -1897,6 +2267,9 @@ class Product extends DataClass implements Insertable<Product> {
       id: Value(id),
       code: Value(code),
       categoryId: Value(categoryId),
+      columnId: columnId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(columnId),
       name: Value(name),
       currency: Value(currency),
       unit1Name: Value(unit1Name),
@@ -1948,6 +2321,7 @@ class Product extends DataClass implements Insertable<Product> {
       id: serializer.fromJson<int>(json['id']),
       code: serializer.fromJson<String>(json['code']),
       categoryId: serializer.fromJson<int>(json['categoryId']),
+      columnId: serializer.fromJson<int?>(json['columnId']),
       name: serializer.fromJson<String>(json['name']),
       currency: serializer.fromJson<String>(json['currency']),
       unit1Name: serializer.fromJson<String>(json['unit1Name']),
@@ -1979,6 +2353,7 @@ class Product extends DataClass implements Insertable<Product> {
       'id': serializer.toJson<int>(id),
       'code': serializer.toJson<String>(code),
       'categoryId': serializer.toJson<int>(categoryId),
+      'columnId': serializer.toJson<int?>(columnId),
       'name': serializer.toJson<String>(name),
       'currency': serializer.toJson<String>(currency),
       'unit1Name': serializer.toJson<String>(unit1Name),
@@ -2005,6 +2380,7 @@ class Product extends DataClass implements Insertable<Product> {
           {int? id,
           String? code,
           int? categoryId,
+          Value<int?> columnId = const Value.absent(),
           String? name,
           String? currency,
           String? unit1Name,
@@ -2028,6 +2404,7 @@ class Product extends DataClass implements Insertable<Product> {
         id: id ?? this.id,
         code: code ?? this.code,
         categoryId: categoryId ?? this.categoryId,
+        columnId: columnId.present ? columnId.value : this.columnId,
         name: name ?? this.name,
         currency: currency ?? this.currency,
         unit1Name: unit1Name ?? this.unit1Name,
@@ -2065,6 +2442,7 @@ class Product extends DataClass implements Insertable<Product> {
       code: data.code.present ? data.code.value : this.code,
       categoryId:
           data.categoryId.present ? data.categoryId.value : this.categoryId,
+      columnId: data.columnId.present ? data.columnId.value : this.columnId,
       name: data.name.present ? data.name.value : this.name,
       currency: data.currency.present ? data.currency.value : this.currency,
       unit1Name: data.unit1Name.present ? data.unit1Name.value : this.unit1Name,
@@ -2116,6 +2494,7 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('id: $id, ')
           ..write('code: $code, ')
           ..write('categoryId: $categoryId, ')
+          ..write('columnId: $columnId, ')
           ..write('name: $name, ')
           ..write('currency: $currency, ')
           ..write('unit1Name: $unit1Name, ')
@@ -2144,6 +2523,7 @@ class Product extends DataClass implements Insertable<Product> {
         id,
         code,
         categoryId,
+        columnId,
         name,
         currency,
         unit1Name,
@@ -2171,6 +2551,7 @@ class Product extends DataClass implements Insertable<Product> {
           other.id == this.id &&
           other.code == this.code &&
           other.categoryId == this.categoryId &&
+          other.columnId == this.columnId &&
           other.name == this.name &&
           other.currency == this.currency &&
           other.unit1Name == this.unit1Name &&
@@ -2196,6 +2577,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<int> id;
   final Value<String> code;
   final Value<int> categoryId;
+  final Value<int?> columnId;
   final Value<String> name;
   final Value<String> currency;
   final Value<String> unit1Name;
@@ -2219,6 +2601,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.id = const Value.absent(),
     this.code = const Value.absent(),
     this.categoryId = const Value.absent(),
+    this.columnId = const Value.absent(),
     this.name = const Value.absent(),
     this.currency = const Value.absent(),
     this.unit1Name = const Value.absent(),
@@ -2243,6 +2626,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.id = const Value.absent(),
     required String code,
     required int categoryId,
+    this.columnId = const Value.absent(),
     required String name,
     required String currency,
     required String unit1Name,
@@ -2271,6 +2655,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<int>? id,
     Expression<String>? code,
     Expression<int>? categoryId,
+    Expression<int>? columnId,
     Expression<String>? name,
     Expression<String>? currency,
     Expression<String>? unit1Name,
@@ -2295,6 +2680,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (id != null) 'id': id,
       if (code != null) 'code': code,
       if (categoryId != null) 'category_id': categoryId,
+      if (columnId != null) 'column_id': columnId,
       if (name != null) 'name': name,
       if (currency != null) 'currency': currency,
       if (unit1Name != null) 'unit1_name': unit1Name,
@@ -2324,6 +2710,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       {Value<int>? id,
       Value<String>? code,
       Value<int>? categoryId,
+      Value<int?>? columnId,
       Value<String>? name,
       Value<String>? currency,
       Value<String>? unit1Name,
@@ -2347,6 +2734,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       id: id ?? this.id,
       code: code ?? this.code,
       categoryId: categoryId ?? this.categoryId,
+      columnId: columnId ?? this.columnId,
       name: name ?? this.name,
       currency: currency ?? this.currency,
       unit1Name: unit1Name ?? this.unit1Name,
@@ -2380,6 +2768,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     }
     if (categoryId.present) {
       map['category_id'] = Variable<int>(categoryId.value);
+    }
+    if (columnId.present) {
+      map['column_id'] = Variable<int>(columnId.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -2450,6 +2841,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('id: $id, ')
           ..write('code: $code, ')
           ..write('categoryId: $categoryId, ')
+          ..write('columnId: $columnId, ')
           ..write('name: $name, ')
           ..write('currency: $currency, ')
           ..write('unit1Name: $unit1Name, ')
@@ -5883,6 +6275,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CustomersTable customers = $CustomersTable(this);
   late final $ProductCategoriesTable productCategories =
       $ProductCategoriesTable(this);
+  late final $ProductColumnsTable productColumns = $ProductColumnsTable(this);
   late final $ProductsTable products = $ProductsTable(this);
   late final $AccountsTable accounts = $AccountsTable(this);
   late final $InvoicesTable invoices = $InvoicesTable(this);
@@ -5899,6 +6292,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         warehouses,
         customers,
         productCategories,
+        productColumns,
         products,
         accounts,
         invoices,
@@ -6388,15 +6782,17 @@ typedef $$ProductCategoriesTableCreateCompanionBuilder
     = ProductCategoriesCompanion Function({
   Value<int> id,
   required String name,
-  Value<int> displayOrder,
   Value<int> gridColumns,
+  Value<bool> isHidden,
+  Value<int> displayOrder,
 });
 typedef $$ProductCategoriesTableUpdateCompanionBuilder
     = ProductCategoriesCompanion Function({
   Value<int> id,
   Value<String> name,
-  Value<int> displayOrder,
   Value<int> gridColumns,
+  Value<bool> isHidden,
+  Value<int> displayOrder,
 });
 
 class $$ProductCategoriesTableTableManager extends RootTableManager<
@@ -6419,26 +6815,30 @@ class $$ProductCategoriesTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
             Value<String> name = const Value.absent(),
-            Value<int> displayOrder = const Value.absent(),
             Value<int> gridColumns = const Value.absent(),
+            Value<bool> isHidden = const Value.absent(),
+            Value<int> displayOrder = const Value.absent(),
           }) =>
               ProductCategoriesCompanion(
             id: id,
             name: name,
-            displayOrder: displayOrder,
             gridColumns: gridColumns,
+            isHidden: isHidden,
+            displayOrder: displayOrder,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required String name,
-            Value<int> displayOrder = const Value.absent(),
             Value<int> gridColumns = const Value.absent(),
+            Value<bool> isHidden = const Value.absent(),
+            Value<int> displayOrder = const Value.absent(),
           }) =>
               ProductCategoriesCompanion.insert(
             id: id,
             name: name,
-            displayOrder: displayOrder,
             gridColumns: gridColumns,
+            isHidden: isHidden,
+            displayOrder: displayOrder,
           ),
         ));
 }
@@ -6456,15 +6856,33 @@ class $$ProductCategoriesTableFilterComposer
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
+  ColumnFilters<int> get gridColumns => $state.composableBuilder(
+      column: $state.table.gridColumns,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<bool> get isHidden => $state.composableBuilder(
+      column: $state.table.isHidden,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
   ColumnFilters<int> get displayOrder => $state.composableBuilder(
       column: $state.table.displayOrder,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
-  ColumnFilters<int> get gridColumns => $state.composableBuilder(
-      column: $state.table.gridColumns,
-      builder: (column, joinBuilders) =>
-          ColumnFilters(column, joinBuilders: joinBuilders));
+  ComposableFilter productColumnsRefs(
+      ComposableFilter Function($$ProductColumnsTableFilterComposer f) f) {
+    final $$ProductColumnsTableFilterComposer composer = $state.composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $state.db.productColumns,
+        getReferencedColumn: (t) => t.categoryId,
+        builder: (joinBuilder, parentComposers) =>
+            $$ProductColumnsTableFilterComposer(ComposerState($state.db,
+                $state.db.productColumns, joinBuilder, parentComposers)));
+    return f(composer);
+  }
 
   ComposableFilter productsRefs(
       ComposableFilter Function($$ProductsTableFilterComposer f) f) {
@@ -6493,21 +6911,185 @@ class $$ProductCategoriesTableOrderingComposer
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
+  ColumnOrderings<int> get gridColumns => $state.composableBuilder(
+      column: $state.table.gridColumns,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<bool> get isHidden => $state.composableBuilder(
+      column: $state.table.isHidden,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<int> get displayOrder => $state.composableBuilder(
+      column: $state.table.displayOrder,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+}
+
+typedef $$ProductColumnsTableCreateCompanionBuilder = ProductColumnsCompanion
+    Function({
+  Value<int> id,
+  required int categoryId,
+  required String name,
+  Value<bool> isHidden,
+  Value<int> displayOrder,
+});
+typedef $$ProductColumnsTableUpdateCompanionBuilder = ProductColumnsCompanion
+    Function({
+  Value<int> id,
+  Value<int> categoryId,
+  Value<String> name,
+  Value<bool> isHidden,
+  Value<int> displayOrder,
+});
+
+class $$ProductColumnsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ProductColumnsTable,
+    ProductColumn,
+    $$ProductColumnsTableFilterComposer,
+    $$ProductColumnsTableOrderingComposer,
+    $$ProductColumnsTableCreateCompanionBuilder,
+    $$ProductColumnsTableUpdateCompanionBuilder> {
+  $$ProductColumnsTableTableManager(
+      _$AppDatabase db, $ProductColumnsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          filteringComposer:
+              $$ProductColumnsTableFilterComposer(ComposerState(db, table)),
+          orderingComposer:
+              $$ProductColumnsTableOrderingComposer(ComposerState(db, table)),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<int> categoryId = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<bool> isHidden = const Value.absent(),
+            Value<int> displayOrder = const Value.absent(),
+          }) =>
+              ProductColumnsCompanion(
+            id: id,
+            categoryId: categoryId,
+            name: name,
+            isHidden: isHidden,
+            displayOrder: displayOrder,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required int categoryId,
+            required String name,
+            Value<bool> isHidden = const Value.absent(),
+            Value<int> displayOrder = const Value.absent(),
+          }) =>
+              ProductColumnsCompanion.insert(
+            id: id,
+            categoryId: categoryId,
+            name: name,
+            isHidden: isHidden,
+            displayOrder: displayOrder,
+          ),
+        ));
+}
+
+class $$ProductColumnsTableFilterComposer
+    extends FilterComposer<_$AppDatabase, $ProductColumnsTable> {
+  $$ProductColumnsTableFilterComposer(super.$state);
+  ColumnFilters<int> get id => $state.composableBuilder(
+      column: $state.table.id,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get name => $state.composableBuilder(
+      column: $state.table.name,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<bool> get isHidden => $state.composableBuilder(
+      column: $state.table.isHidden,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<int> get displayOrder => $state.composableBuilder(
+      column: $state.table.displayOrder,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  $$ProductCategoriesTableFilterComposer get categoryId {
+    final $$ProductCategoriesTableFilterComposer composer =
+        $state.composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.categoryId,
+            referencedTable: $state.db.productCategories,
+            getReferencedColumn: (t) => t.id,
+            builder: (joinBuilder, parentComposers) =>
+                $$ProductCategoriesTableFilterComposer(ComposerState(
+                    $state.db,
+                    $state.db.productCategories,
+                    joinBuilder,
+                    parentComposers)));
+    return composer;
+  }
+
+  ComposableFilter productsRefs(
+      ComposableFilter Function($$ProductsTableFilterComposer f) f) {
+    final $$ProductsTableFilterComposer composer = $state.composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $state.db.products,
+        getReferencedColumn: (t) => t.columnId,
+        builder: (joinBuilder, parentComposers) =>
+            $$ProductsTableFilterComposer(ComposerState(
+                $state.db, $state.db.products, joinBuilder, parentComposers)));
+    return f(composer);
+  }
+}
+
+class $$ProductColumnsTableOrderingComposer
+    extends OrderingComposer<_$AppDatabase, $ProductColumnsTable> {
+  $$ProductColumnsTableOrderingComposer(super.$state);
+  ColumnOrderings<int> get id => $state.composableBuilder(
+      column: $state.table.id,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get name => $state.composableBuilder(
+      column: $state.table.name,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<bool> get isHidden => $state.composableBuilder(
+      column: $state.table.isHidden,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
   ColumnOrderings<int> get displayOrder => $state.composableBuilder(
       column: $state.table.displayOrder,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
-  ColumnOrderings<int> get gridColumns => $state.composableBuilder(
-      column: $state.table.gridColumns,
-      builder: (column, joinBuilders) =>
-          ColumnOrderings(column, joinBuilders: joinBuilders));
+  $$ProductCategoriesTableOrderingComposer get categoryId {
+    final $$ProductCategoriesTableOrderingComposer composer =
+        $state.composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.categoryId,
+            referencedTable: $state.db.productCategories,
+            getReferencedColumn: (t) => t.id,
+            builder: (joinBuilder, parentComposers) =>
+                $$ProductCategoriesTableOrderingComposer(ComposerState(
+                    $state.db,
+                    $state.db.productCategories,
+                    joinBuilder,
+                    parentComposers)));
+    return composer;
+  }
 }
 
 typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   Value<int> id,
   required String code,
   required int categoryId,
+  Value<int?> columnId,
   required String name,
   required String currency,
   required String unit1Name,
@@ -6532,6 +7114,7 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<int> id,
   Value<String> code,
   Value<int> categoryId,
+  Value<int?> columnId,
   Value<String> name,
   Value<String> currency,
   Value<String> unit1Name,
@@ -6573,6 +7156,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<int> id = const Value.absent(),
             Value<String> code = const Value.absent(),
             Value<int> categoryId = const Value.absent(),
+            Value<int?> columnId = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<String> currency = const Value.absent(),
             Value<String> unit1Name = const Value.absent(),
@@ -6597,6 +7181,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             id: id,
             code: code,
             categoryId: categoryId,
+            columnId: columnId,
             name: name,
             currency: currency,
             unit1Name: unit1Name,
@@ -6621,6 +7206,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<int> id = const Value.absent(),
             required String code,
             required int categoryId,
+            Value<int?> columnId = const Value.absent(),
             required String name,
             required String currency,
             required String unit1Name,
@@ -6645,6 +7231,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             id: id,
             code: code,
             categoryId: categoryId,
+            columnId: columnId,
             name: name,
             currency: currency,
             unit1Name: unit1Name,
@@ -6792,6 +7379,18 @@ class $$ProductsTableFilterComposer
     return composer;
   }
 
+  $$ProductColumnsTableFilterComposer get columnId {
+    final $$ProductColumnsTableFilterComposer composer = $state.composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.columnId,
+        referencedTable: $state.db.productColumns,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder, parentComposers) =>
+            $$ProductColumnsTableFilterComposer(ComposerState($state.db,
+                $state.db.productColumns, joinBuilder, parentComposers)));
+    return composer;
+  }
+
   ComposableFilter transferLinesRefs(
       ComposableFilter Function($$TransferLinesTableFilterComposer f) f) {
     final $$TransferLinesTableFilterComposer composer = $state.composerBuilder(
@@ -6927,6 +7526,19 @@ class $$ProductsTableOrderingComposer
                     $state.db.productCategories,
                     joinBuilder,
                     parentComposers)));
+    return composer;
+  }
+
+  $$ProductColumnsTableOrderingComposer get columnId {
+    final $$ProductColumnsTableOrderingComposer composer =
+        $state.composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.columnId,
+            referencedTable: $state.db.productColumns,
+            getReferencedColumn: (t) => t.id,
+            builder: (joinBuilder, parentComposers) =>
+                $$ProductColumnsTableOrderingComposer(ComposerState($state.db,
+                    $state.db.productColumns, joinBuilder, parentComposers)));
     return composer;
   }
 }
@@ -8369,6 +8981,8 @@ class $AppDatabaseManager {
       $$CustomersTableTableManager(_db, _db.customers);
   $$ProductCategoriesTableTableManager get productCategories =>
       $$ProductCategoriesTableTableManager(_db, _db.productCategories);
+  $$ProductColumnsTableTableManager get productColumns =>
+      $$ProductColumnsTableTableManager(_db, _db.productColumns);
   $$ProductsTableTableManager get products =>
       $$ProductsTableTableManager(_db, _db.products);
   $$AccountsTableTableManager get accounts =>

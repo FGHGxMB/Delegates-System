@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database.dart';
 import '../../providers/database_provider.dart';
 
+@DriftAccessor(tables: [ProductCategories, Products, ProductColumns])
 class CatalogDao {
   final AppDatabase db;
   CatalogDao(this.db);
@@ -123,6 +124,28 @@ class CatalogDao {
       ..where((t) => t.isActive.equals(true) & t.categoryId.equals(categoryId))
       ..orderBy([(t) => OrderingTerm(expression: t.displayOrder)]))
         .watch();
+  }
+
+  // ─── دوال العواميد الجديدة ───
+
+  // 1. جلب العواميد التابعة لمجموعة معينة
+  Future<List<ProductColumn>> getColumnsByCategory(int categoryId) {
+    return (select(productColumns) // 👈 تم إزالة db.
+      ..where((t) => t.categoryId.equals(categoryId))
+      ..orderBy([(t) => OrderingTerm(expression: t.displayOrder)]))
+        .get();
+  }
+
+  // 2. التحقق هل يمكن حذف العمود؟ (لا يمكن إذا كان به مواد)
+  Future<bool> canDeleteColumn(int columnId) async {
+    final productsCount = await (select(products)..where((t) => t.columnId.equals(columnId))).get(); // 👈 تم إزالة db.
+    return productsCount.isEmpty;
+  }
+
+  // 3. التحقق هل يمكن حذف المجموعة؟ (لا يمكن إذا كان بها عواميد)
+  Future<bool> canDeleteCategory(int categoryId) async {
+    final columnsCount = await (select(productColumns)..where((t) => t.categoryId.equals(categoryId))).get(); // 👈 تم إزالة db.
+    return columnsCount.isEmpty;
   }
 }
 

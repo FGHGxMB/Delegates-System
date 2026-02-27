@@ -39,9 +39,9 @@ class Customers extends Table {
 class ProductCategories extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().unique()();
-  IntColumn get displayOrder => integer().withDefault(const Constant(0))();
-  // [جديد] للتحكم بعدد الأعمدة عند عرض المواد (مثلاً 2 أو 3 أو 4)
   IntColumn get gridColumns => integer().withDefault(const Constant(2))();
+  BoolColumn get isHidden => boolean().withDefault(const Constant(false))();
+  IntColumn get displayOrder => integer().withDefault(const Constant(0))();
 }
 
 // 5. جدول المواد
@@ -49,6 +49,7 @@ class Products extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get code => text().unique()();
   IntColumn get categoryId => integer().references(ProductCategories, #id)();
+  IntColumn get columnId => integer().nullable().customConstraint('REFERENCES product_columns(id)')();
   TextColumn get name => text()();
   TextColumn get currency => text()(); // 'SYP' أو 'USD'
 
@@ -174,4 +175,13 @@ class TransferLines extends Table {
   IntColumn get unitNumber => integer()();
   TextColumn get unitName => text().nullable()();
   RealColumn get quantity => real()();
+}
+
+// 12. جدول العواميد الخاصة بالمواد
+class ProductColumns extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get categoryId => integer().customConstraint('REFERENCES product_categories(id)')(); // ارتباط بالمجموعة
+  TextColumn get name => text()();
+  BoolColumn get isHidden => boolean().withDefault(const Constant(false))(); // ميزة الإخفاء
+  IntColumn get displayOrder => integer().withDefault(const Constant(0))();
 }

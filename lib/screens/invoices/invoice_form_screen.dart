@@ -129,7 +129,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   double get _discount => CurrencyUtils.parse(_discountCtrl.text);
   double get _netTotal => _subtotal - _discount;
 
-  // المخرجة والمسودة قابلتان للتعديل. المرسلة فقط مقفلة.
   bool get _isReadOnly => _status == 'SENT';
 
   Future<void> _selectDate() async {
@@ -149,9 +148,14 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       return;
     }
 
+    // 1. جلب إعداد "تحميل الأسعار تلقائياً" من قاعدة البيانات
+    final settings = ref.read(settingsDaoProvider);
+    final autoLoadStr = await settings.getValue('auto_load_prices') ?? '1';
+    final bool autoLoadPrices = autoLoadStr == '1';
+
     final selectedProducts = await Navigator.push<List<Product>>(
       context,
-      MaterialPageRoute(builder: (_) => const ProductSelectionScreen()),
+      MaterialPageRoute(builder: (_) => const ProductSelectionScreen(isSingleSelection: false)),
     );
 
     if (selectedProducts != null && selectedProducts.isNotEmpty && mounted) {
@@ -159,17 +163,30 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         for (var p in selectedProducts) {
           int unit = p.defaultUnit;
           String unitName = unit == 1 ? p.unit1Name : unit == 2 ? p.unit2Name! : p.unit3Name!;
-          double price = unit == 1 ? p.unit1PriceRetail : unit == 2 ? p.unit2PriceRetail! : p.unit3PriceRetail!;
-          double retailSnap = price;
-          double wholesaleSnap = unit == 1 ? p.unit1PriceWholesale : unit == 2 ? p.unit2PriceWholesale! : p.unit3PriceWholesale!;
 
-          // التحويل حسب سعر الصرف إذا اختلفت العملة
-          if (_currency == 'SYP' && p.currency == 'USD') {
-            price = price * _exchangeRate;
-          } else if (_currency == 'USD' && p.currency == 'SYP') {
-            price = price / _exchangeRate;
+          double price = 0.0;
+          double retailSnap = 0.0;
+          double wholesaleSnap = 0.0;
+
+          // 2. إذا كان الإعداد مفعلاً، نقوم بحساب السعر والتحويل
+          if (autoLoadPrices) {
+            price = unit == 1 ? p.unit1PriceRetail : unit == 2 ? p.unit2PriceRetail! : p.unit3PriceRetail!;
+            retailSnap = price;
+            wholesaleSnap = unit == 1 ? p.unit1PriceWholesale : unit == 2 ? p.unit2PriceWholesale! : p.unit3PriceWholesale!;
+
+            // التحويل الدقيق للأسعار حسب العملة
+            if (_currency == 'SYP' && p.currency == 'USD') {
+              price = price * _exchangeRate;
+              retailSnap = retailSnap * _exchangeRate;
+              wholesaleSnap = wholesaleSnap * _exchangeRate;
+            } else if (_currency == 'USD' && p.currency == 'SYP') {
+              price = price / _exchangeRate;
+              retailSnap = retailSnap / _exchangeRate;
+              wholesaleSnap = wholesaleSnap / _exchangeRate;
+            }
           }
 
+          // 3. إضافة القلم للفاتورة (إذا كان الإعداد مطفأ سيكون السعر 0.0 تلقائياً)
           _lines.add(InvoiceLineUI(
             product: p,
             unitNumber: unit,
@@ -184,7 +201,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     }
   }
 
-  // نافذة الإدخال الرقمي (السعر / الكمية / الإجمالي) مع الحساب المتبادل
   Future<void> _editNumericCell(InvoiceLineUI line, String field) async {
     if (_isReadOnly) return;
 
@@ -211,12 +227,12 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                 final val = CurrencyUtils.parse(ctrl.text);
                 setState(() {
                   if (field == 'QTY') {
-                    if (val > 0) line.quantity = val; // نمنع الصفر للكمية
+                    if (val > 0) line.quantity = val;
                   } else if (field == 'PRICE') {
                     line.price = val;
                   } else if (field == 'TOTAL') {
                     if (line.quantity > 0) {
-                      line.price = val / line.quantity; // الحساب العكسي للسعر
+                      line.price = val / line.quantity;
                     }
                   }
                 });
@@ -229,7 +245,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     );
   }
 
-  // نافذة تغيير الوحدة
   Future<void> _editUnit(InvoiceLineUI line) async {
     if (_isReadOnly) return;
     int selected = line.unitNumber;
@@ -252,11 +267,24 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       if (line.unitNumber != selected) {
         line.unitNumber = selected;
         line.unitName = selected == 1 ? line.product.unit1Name : selected == 2 ? line.product.unit2Name! : line.product.unit3Name!;
-        // إعادة تحميل السعر الافتراضي للوحدة الجديدة
+
         double p = selected == 1 ? line.product.unit1PriceRetail : selected == 2 ? line.product.unit2PriceRetail! : line.product.unit3PriceRetail!;
-        if (_currency == 'SYP' && line.product.currency == 'USD') p *= _exchangeRate;
-        else if (_currency == 'USD' && line.product.currency == 'SYP') p /= _exchangeRate;
+        double rSnap = p;
+        double wSnap = selected == 1 ? line.product.unit1PriceWholesale : selected == 2 ? line.product.unit2PriceWholesale! : line.product.unit3PriceWholesale!;
+
+        if (_currency == 'SYP' && line.product.currency == 'USD') {
+          p *= _exchangeRate;
+          rSnap *= _exchangeRate;
+          wSnap *= _exchangeRate;
+        } else if (_currency == 'USD' && line.product.currency == 'SYP') {
+          p /= _exchangeRate;
+          rSnap /= _exchangeRate;
+          wSnap /= _exchangeRate;
+        }
+
         line.price = p;
+        line.retailSnapshot = rSnap;
+        line.wholesaleSnapshot = wSnap;
       }
     });
   }
@@ -277,7 +305,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
               subtitle: const Text('تغيير المادة لإخفائها عن الزبون في الطباعة'),
               onTap: () async {
                 Navigator.pop(ctx);
-                final realPList = await Navigator.push<List<Product>>(context, MaterialPageRoute(builder: (_) => const ProductSelectionScreen()));
+                final realPList = await Navigator.push<List<Product>>(context, MaterialPageRoute(builder: (_) => const ProductSelectionScreen(isSingleSelection: true)));
                 if (realPList != null && realPList.isNotEmpty) setState(() => line.realProduct = realPList.first);
               },
             ),
@@ -305,6 +333,13 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   }
 
   Future<void> _saveInvoice({bool issue = false}) async {
+    if (_lines.any((l) => !l.isGift && l.price <= 0)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('عذراً، هناك مواد بدون سعر! يرجى تسعيرها أو جعلها هدية (🎁)'),
+          backgroundColor: Colors.red));
+      return;
+    }
+
     if (_lines.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.documentNoProducts), backgroundColor: Colors.red));
       return;
@@ -316,7 +351,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
 
     final invDao = ref.read(invoicesDaoProvider);
 
-    // ملاحظة: إذا ضغط "تخريج" تصبح الحالة ISSUED، وإذا كانت أساساً ISSUED وضغط "تعديل" تبقى ISSUED
     String newStatus = _status;
     if (issue) newStatus = 'ISSUED';
 
@@ -388,7 +422,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             color: Colors.white,
             padding: const EdgeInsets.all(8.0),
             child: Column(
-              children: [
+              children:[
                 Row(
                   children:[
                     Expanded(
@@ -406,11 +440,10 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                         value: _currency,
                         decoration: const InputDecoration(labelText: 'العملة', isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
                         items: const[DropdownMenuItem(value: 'SYP', child: Text('ل.س')), DropdownMenuItem(value: 'USD', child: Text('دولار \$'))],
-                        onChanged: _isReadOnly ? null : (val) {
+                        // تم إضافة شرط لتعطيل تغيير العملة إذا كان هناك زبون محدد
+                        onChanged: (_isReadOnly || _selectedCustomer != null) ? null : (val) {
                           setState(() {
                             _currency = val!;
-                            _selectedCustomer = null;
-                            _customerSearchCtrl.clear();
                           });
                         },
                       ),
@@ -444,8 +477,14 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                         labelText: 'الزبون (حسب عملة الفاتورة)',
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        // زر تفريغ حقل الزبون باللون الأحمر واضح للمندوب
                         suffixIcon: _selectedCustomer != null && !_isReadOnly
-                            ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () => setState(() { _selectedCustomer = null; _customerSearchCtrl.clear(); }))
+                            ? IconButton(icon: const Icon(Icons.clear, size: 20, color: Colors.red), onPressed: () {
+                          setState(() {
+                            _selectedCustomer = null;
+                            _customerSearchCtrl.clear();
+                          });
+                        })
                             : null,
                       ),
                     );
@@ -531,12 +570,14 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                             child: Container(padding: const EdgeInsets.all(8), alignment: Alignment.center, child: Text(line.unitName, style: const TextStyle(color: Colors.blue, fontSize: 12), overflow: TextOverflow.ellipsis)),
                           )),
                           Expanded(flex: 2, child: InkWell(
-                            onTap: () => _editNumericCell(line, 'PRICE'),
-                            child: Container(padding: const EdgeInsets.all(8), alignment: Alignment.center, child: Text(CurrencyUtils.format(line.price), style: const TextStyle(color: Colors.blue, fontSize: 12), overflow: TextOverflow.ellipsis)),
+                            onTap: line.isGift ? null : () => _editNumericCell(line, 'PRICE'),
+                            child: Container(padding: const EdgeInsets.all(8), alignment: Alignment.center,
+                                child: Text(line.isGift ? '---' : CurrencyUtils.format(line.price), style: TextStyle(color: line.isGift ? Colors.grey : Colors.blue, fontSize: 12), overflow: TextOverflow.ellipsis)),
                           )),
                           Expanded(flex: 2, child: InkWell(
-                            onTap: () => _editNumericCell(line, 'TOTAL'),
-                            child: Container(padding: const EdgeInsets.all(8), alignment: Alignment.center, child: Text(line.isGift ? '0' : CurrencyUtils.format(line.total), style: TextStyle(color: line.isGift ? Colors.grey : Colors.green, fontWeight: FontWeight.bold, fontSize: 12), overflow: TextOverflow.ellipsis)),
+                            onTap: line.isGift ? null : () => _editNumericCell(line, 'TOTAL'),
+                            child: Container(padding: const EdgeInsets.all(8), alignment: Alignment.center,
+                                child: Text(line.isGift ? '---' : CurrencyUtils.format(line.total), style: TextStyle(color: line.isGift ? Colors.grey : Colors.green, fontWeight: FontWeight.bold, fontSize: 12), overflow: TextOverflow.ellipsis)),
                           )),
                         ],
                       ),

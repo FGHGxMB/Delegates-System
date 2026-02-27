@@ -63,9 +63,9 @@ class InvoicesDao {
         );
         invoiceId = await db.into(db.invoices).insert(newInvoice);
       } else {
-        // تحديث فاتورة موجودة (مسودة)
+        // تحديث فاتورة موجودة (مسودة) - تم التصحيح لاستخدام write بدلاً من replace
         invoiceId = invoice.id.value;
-        await db.update(db.invoices).replace(invoice);
+        await (db.update(db.invoices)..where((t) => t.id.equals(invoiceId))).write(invoice);
 
         // نحذف الأقلام القديمة لنضع الجديدة (لأن المستخدم قد يكون حذف بعض الأقلام أثناء التعديل)
         await (db.delete(db.invoiceLines)..where((t) => t.invoiceId.equals(invoiceId))).go();

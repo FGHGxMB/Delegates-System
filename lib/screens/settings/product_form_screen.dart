@@ -8,8 +8,8 @@ import '../../database/daos/catalog_dao.dart';
 import '../../database/database.dart';
 
 class ProductFormScreen extends ConsumerStatefulWidget {
-  final int categoryId;
-  final int productId;
+  final int categoryId; // الآن هذا لن نعتمد عليه كلياً لأن المادة ترتبط بالعمود
+  final int productId; // 0 يعني مادة جديدة
 
   const ProductFormScreen({Key? key, required this.categoryId, required this.productId}) : super(key: key);
 
@@ -19,33 +19,33 @@ class ProductFormScreen extends ConsumerStatefulWidget {
 
 class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _formKey = GlobalKey<FormState>();
-
   bool _isLoading = true;
-  Product? _existingProduct;
 
-  // المعلومات الأساسية
+  // القوائم المنسدلة المتسلسلة
+  int? _selectedCategoryId;
+  int? _selectedColumnId;
+  List<ProductCategory> _categories =[];
+  List<ProductColumn> _columnsForSelectedCategory =[];
+
   final _codeCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   String _currency = 'SYP';
+  bool _isActive = true;
 
-  // الوحدة الأولى
-  final _u1NameCtrl = TextEditingController();
-  final _u1BarcodeCtrl = TextEditingController(); // [جديد]
+  // الوحدة الأولى (إجبارية)
+  final _u1NameCtrl = TextEditingController(text: 'قطعة');
   final _u1RetailCtrl = TextEditingController();
   final _u1WholesaleCtrl = TextEditingController();
 
-  // الوحدة الثانية
+  // الوحدة الثانية والثالثة (اختيارية)
   bool _hasUnit2 = false;
   final _u2NameCtrl = TextEditingController();
-  final _u2BarcodeCtrl = TextEditingController(); // [جديد]
   final _u2FactorCtrl = TextEditingController();
   final _u2RetailCtrl = TextEditingController();
   final _u2WholesaleCtrl = TextEditingController();
 
-  // الوحدة الثالثة
   bool _hasUnit3 = false;
   final _u3NameCtrl = TextEditingController();
-  final _u3BarcodeCtrl = TextEditingController(); // [جديد]
   final _u3FactorCtrl = TextEditingController();
   final _u3RetailCtrl = TextEditingController();
   final _u3WholesaleCtrl = TextEditingController();
@@ -59,124 +59,122 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   }
 
   Future<void> _loadData() async {
-    if (widget.productId == 0) {
-      setState(() => _isLoading = false);
-      return;
-    }
-
     final dao = ref.read(catalogDaoProvider);
-    _existingProduct = await dao.getProductById(widget.productId);
 
-    if (_existingProduct != null) {
-      final p = _existingProduct!;
-      _codeCtrl.text = p.code;
-      _nameCtrl.text = p.name;
-      _currency = p.currency;
+    // 1. جلب كل المجموعات
+    _categories = await dao.db.select(dao.db.productCategories).get();
 
-      _u1NameCtrl.text = p.unit1Name;
-      _u1BarcodeCtrl.text = p.unit1Barcode ?? '';
-      _u1RetailCtrl.text = p.unit1PriceRetail.toString();
-      _u1WholesaleCtrl.text = p.unit1PriceWholesale.toString();
+    if (widget.productId != 0) {
+      // تعديل مادة موجودة
+      final product = await (dao.db.select(dao.db.products)..where((t) => t.id.equals(widget.productId))).getSingleOrNull();
+      if (product != null) {
+        _codeCtrl.text = product.code;
+        _nameCtrl.text = product.name;
+        _currency = product.currency;
+        _isActive = product.isActive;
+        _defaultUnit = product.defaultUnit;
 
-      if (p.unit2Name != null) {
-        _hasUnit2 = true;
-        _u2NameCtrl.text = p.unit2Name!;
-        _u2BarcodeCtrl.text = p.unit2Barcode ?? '';
-        _u2FactorCtrl.text = p.unit2Factor.toString();
-        _u2RetailCtrl.text = p.unit2PriceRetail.toString();
-        _u2WholesaleCtrl.text = p.unit2PriceWholesale.toString();
+        // تحديد العمود والمجموعة بذكاء
+        _selectedColumnId = product.columnId;
+        if (_selectedColumnId != null) {
+          final column = await (dao.db.select(dao.db.productColumns)..where((t) => t.id.equals(_selectedColumnId!))).getSingleOrNull();
+          if (column != null) {
+            _selectedCategoryId = column.categoryId;
+            _columnsForSelectedCategory = await dao.getColumnsByCategory(_selectedCategoryId!);
+          }
+        }
+
+        // تعبئة بيانات الوحدات
+        _u1NameCtrl.text = product.unit1Name;
+        _u1RetailCtrl.text = product.unit1PriceRetail.toString();
+        _u1WholesaleCtrl.text = product.unit1PriceWholesale.toString();
+
+        if (product.unit2Name != null) {
+          _hasUnit2 = true;
+          _u2NameCtrl.text = product.unit2Name!;
+          _u2FactorCtrl.text = product.unit2Factor.toString();
+          _u2RetailCtrl.text = product.unit2PriceRetail.toString();
+          _u2WholesaleCtrl.text = product.unit2PriceWholesale.toString();
+        }
+        if (product.unit3Name != null) {
+          _hasUnit3 = true;
+          _u3NameCtrl.text = product.unit3Name!;
+          _u3FactorCtrl.text = product.unit3Factor.toString();
+          _u3RetailCtrl.text = product.unit3PriceRetail.toString();
+          _u3WholesaleCtrl.text = product.unit3PriceWholesale.toString();
+        }
       }
-
-      if (p.unit3Name != null) {
-        _hasUnit3 = true;
-        _u3NameCtrl.text = p.unit3Name!;
-        _u3BarcodeCtrl.text = p.unit3Barcode ?? '';
-        _u3FactorCtrl.text = p.unit3Factor.toString();
-        _u3RetailCtrl.text = p.unit3PriceRetail.toString();
-        _u3WholesaleCtrl.text = p.unit3PriceWholesale.toString();
+    } else {
+      // مادة جديدة: إذا كان هناك مجموعات، نختار الأولى تلقائياً ونجلب عواميدها
+      if (_categories.isNotEmpty) {
+        _selectedCategoryId = widget.categoryId > 0 ? widget.categoryId : _categories.first.id;
+        await _loadColumnsForCategory(_selectedCategoryId!);
       }
-
-      _defaultUnit = p.defaultUnit;
     }
+
     setState(() => _isLoading = false);
   }
 
-  Future<void> _saveProduct() async {
+  // دالة تُستدعى عند تغيير المجموعة لجلب عواميدها
+  Future<void> _loadColumnsForCategory(int categoryId) async {
+    final dao = ref.read(catalogDaoProvider);
+    final columns = await dao.getColumnsByCategory(categoryId);
+    setState(() {
+      _columnsForSelectedCategory = columns;
+      // إذا كان هناك عواميد، اختر الأول تلقائياً، وإلا اجعله فارغاً
+      _selectedColumnId = columns.isNotEmpty ? columns.first.id : null;
+    });
+  }
+
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final dao = ref.read(catalogDaoProvider);
-
-    // [جديد] التحقق من التكرار
-    final exists = await dao.isProductCodeOrNameExists(_codeCtrl.text.trim(), _nameCtrl.text.trim(), widget.productId);
-    if (exists && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.nameOrCodeExists), backgroundColor: Colors.red));
+    // التحقق من تحديد العمود
+    if (_selectedCategoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('يجب اختيار المجموعة!'), backgroundColor: Colors.red));
+      return;
+    }
+    if (_selectedColumnId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('يجب اختيار العمود! إذا كانت القائمة فارغة، قم بإنشاء عمود في هذه المجموعة أولاً.'), backgroundColor: Colors.red));
       return;
     }
 
+    final dao = ref.read(catalogDaoProvider);
+
     final companion = ProductsCompanion(
-      categoryId: drift.Value(widget.categoryId),
+      id: widget.productId == 0 ? const drift.Value.absent() : drift.Value(widget.productId),
       code: drift.Value(_codeCtrl.text.trim()),
+      categoryId: drift.Value(_selectedCategoryId!), // لحفظ التوافق
+      columnId: drift.Value(_selectedColumnId!), // 👈 هذا هو الأهم الآن
       name: drift.Value(_nameCtrl.text.trim()),
       currency: drift.Value(_currency),
+      isActive: drift.Value(_isActive),
       defaultUnit: drift.Value(_defaultUnit),
-      isActive: const drift.Value(true),
 
-      // الوحدة الأولى
       unit1Name: drift.Value(_u1NameCtrl.text.trim()),
-      unit1Barcode: drift.Value(_u1BarcodeCtrl.text.trim().isEmpty ? null : _u1BarcodeCtrl.text.trim()),
       unit1PriceRetail: drift.Value(double.parse(_u1RetailCtrl.text)),
       unit1PriceWholesale: drift.Value(double.parse(_u1WholesaleCtrl.text)),
 
-      // الوحدة الثانية
-      unit2Name: drift.Value(_hasUnit2 ? _u2NameCtrl.text.trim() : null),
-      unit2Barcode: drift.Value(_hasUnit2 && _u2BarcodeCtrl.text.trim().isNotEmpty ? _u2BarcodeCtrl.text.trim() : null),
-      unit2Factor: drift.Value(_hasUnit2 ? double.parse(_u2FactorCtrl.text) : null),
-      unit2PriceRetail: drift.Value(_hasUnit2 ? double.parse(_u2RetailCtrl.text) : null),
-      unit2PriceWholesale: drift.Value(_hasUnit2 ? double.parse(_u2WholesaleCtrl.text) : null),
+      unit2Name: _hasUnit2 ? drift.Value(_u2NameCtrl.text.trim()) : const drift.Value.absent(),
+      unit2Factor: _hasUnit2 ? drift.Value(double.parse(_u2FactorCtrl.text)) : const drift.Value.absent(),
+      unit2PriceRetail: _hasUnit2 ? drift.Value(double.parse(_u2RetailCtrl.text)) : const drift.Value.absent(),
+      unit2PriceWholesale: _hasUnit2 ? drift.Value(double.parse(_u2WholesaleCtrl.text)) : const drift.Value.absent(),
 
-      // الوحدة الثالثة
-      unit3Name: drift.Value(_hasUnit3 && _hasUnit2 ? _u3NameCtrl.text.trim() : null),
-      unit3Barcode: drift.Value(_hasUnit3 && _hasUnit2 && _u3BarcodeCtrl.text.trim().isNotEmpty ? _u3BarcodeCtrl.text.trim() : null),
-      unit3Factor: drift.Value(_hasUnit3 && _hasUnit2 ? double.parse(_u3FactorCtrl.text) : null),
-      unit3PriceRetail: drift.Value(_hasUnit3 && _hasUnit2 ? double.parse(_u3RetailCtrl.text) : null),
-      unit3PriceWholesale: drift.Value(_hasUnit3 && _hasUnit2 ? double.parse(_u3WholesaleCtrl.text) : null),
+      unit3Name: (_hasUnit2 && _hasUnit3) ? drift.Value(_u3NameCtrl.text.trim()) : const drift.Value.absent(),
+      unit3Factor: (_hasUnit2 && _hasUnit3) ? drift.Value(double.parse(_u3FactorCtrl.text)) : const drift.Value.absent(),
+      unit3PriceRetail: (_hasUnit2 && _hasUnit3) ? drift.Value(double.parse(_u3RetailCtrl.text)) : const drift.Value.absent(),
+      unit3PriceWholesale: (_hasUnit2 && _hasUnit3) ? drift.Value(double.parse(_u3WholesaleCtrl.text)) : const drift.Value.absent(),
     );
 
     try {
       if (widget.productId == 0) {
-        final existingProducts = await dao.watchProductsByCategory(widget.categoryId).first;
-        final newCompanion = companion.copyWith(displayOrder: drift.Value(existingProducts.length));
-        await dao.insertProduct(newCompanion);
+        await dao.db.into(dao.db.products).insert(companion);
       } else {
-        final updatedProduct = _existingProduct!.copyWith(
-          code: companion.code.value,
-          name: companion.name.value,
-          currency: companion.currency.value,
-          defaultUnit: companion.defaultUnit.value,
-          unit1Name: companion.unit1Name.value,
-          unit1Barcode: drift.Value(companion.unit1Barcode.value),
-          unit1PriceRetail: companion.unit1PriceRetail.value,
-          unit1PriceWholesale: companion.unit1PriceWholesale.value,
-          unit2Name: drift.Value(companion.unit2Name.value),
-          unit2Barcode: drift.Value(companion.unit2Barcode.value),
-          unit2Factor: drift.Value(companion.unit2Factor.value),
-          unit2PriceRetail: drift.Value(companion.unit2PriceRetail.value),
-          unit2PriceWholesale: drift.Value(companion.unit2PriceWholesale.value),
-          unit3Name: drift.Value(companion.unit3Name.value),
-          unit3Barcode: drift.Value(companion.unit3Barcode.value),
-          unit3Factor: drift.Value(companion.unit3Factor.value),
-          unit3PriceRetail: drift.Value(companion.unit3PriceRetail.value),
-          unit3PriceWholesale: drift.Value(companion.unit3PriceWholesale.value),
-        );
-        await dao.updateProductDetails(updatedProduct);
+        await (dao.db.update(dao.db.products)..where((t) => t.id.equals(widget.productId))).write(companion);
       }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.success)));
-        context.pop();
-      }
+      if (mounted) context.pop();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: قد يكون الرمز مكرراً.'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ في الحفظ: قد يكون رمز المادة مكرراً!'), backgroundColor: Colors.red));
     }
   }
 
@@ -186,255 +184,180 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.productId == 0 ? AppStrings.newProduct : AppStrings.editProduct),
-        backgroundColor: Colors.red[800],
+        title: Text(widget.productId == 0 ? AppStrings.newProduct : AppStrings.edit),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
       ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children:[
-            // ─── المعلومات الأساسية ───
+            // ─── القسم الأول: تصنيف المادة (مجموعة ثم عمود) ───
             Card(
+              elevation: 2,
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children:[
-                    const Text(AppStrings.basicInfo, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary)),
-                    const Divider(),
-                    TextFormField(
-                      controller: _codeCtrl,
-                      decoration: const InputDecoration(labelText: AppStrings.productCode),
-                      validator: (v) => v!.isEmpty ? AppStrings.fieldRequired : null,
-                    ),
+                    const Text('تصنيف المادة:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary)),
                     const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _nameCtrl,
-                      decoration: const InputDecoration(labelText: AppStrings.productName),
-                      validator: (v) => v!.isEmpty ? AppStrings.fieldRequired : null,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(AppStrings.productCurrency, style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    SegmentedButton<String>(
-                      segments: const[
-                        ButtonSegment(value: 'SYP', label: Text('ليرة سورية')),
-                        ButtonSegment(value: 'USD', label: Text('دولار \$')),
-                      ],
-                      selected: {_currency},
-                      onSelectionChanged: (set) => setState(() => _currency = set.first),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
 
-            // ─── الوحدة الأولى (إجبارية) ───
-            _buildUnitCard(
-              title: AppStrings.unit1,
-              nameCtrl: _u1NameCtrl,
-              barcodeCtrl: _u1BarcodeCtrl,
-              retailCtrl: _u1RetailCtrl,
-              wholesaleCtrl: _u1WholesaleCtrl,
-              isMandatory: true,
-            ),
-            const SizedBox(height: 16),
-
-            // ─── الوحدة الثانية (اختيارية) ───
-            Card(
-              child: Column(
-                children:[
-                  SwitchListTile(
-                    title: const Text(AppStrings.enableUnit2, style: TextStyle(fontWeight: FontWeight.bold)),
-                    value: _hasUnit2,
-                    onChanged: (val) {
-                      setState(() {
-                        _hasUnit2 = val;
-                        if (!val) {
-                          _hasUnit3 = false;
-                          if (_defaultUnit > 1) _defaultUnit = 1;
-                        }
-                      });
-                    },
-                  ),
-                  if (_hasUnit2)
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: _buildUnitFields(
-                        nameCtrl: _u2NameCtrl,
-                        barcodeCtrl: _u2BarcodeCtrl,
-                        retailCtrl: _u2RetailCtrl,
-                        wholesaleCtrl: _u2WholesaleCtrl,
-                        factorCtrl: _u2FactorCtrl,
-                        factorHint: AppStrings.conversionFactor2,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // ─── الوحدة الثالثة (اختيارية) ───
-            if (_hasUnit2)
-              Card(
-                child: Column(
-                  children:[
-                    SwitchListTile(
-                      title: const Text(AppStrings.enableUnit3, style: TextStyle(fontWeight: FontWeight.bold)),
-                      value: _hasUnit3,
+                    // 1. قائمة المجموعات
+                    DropdownButtonFormField<int>(
+                      value: _selectedCategoryId,
+                      decoration: const InputDecoration(labelText: 'اختر المجموعة', border: OutlineInputBorder()),
+                      items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                      validator: (val) => val == null ? AppStrings.fieldRequired : null,
                       onChanged: (val) {
-                        setState(() {
-                          _hasUnit3 = val;
-                          if (!val && _defaultUnit == 3) _defaultUnit = 2;
-                        });
+                        if (val != null && val != _selectedCategoryId) {
+                          setState(() => _selectedCategoryId = val);
+                          _loadColumnsForCategory(val); // جلب العواميد فوراً
+                        }
                       },
                     ),
-                    if (_hasUnit3)
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: _buildUnitFields(
-                          nameCtrl: _u3NameCtrl,
-                          barcodeCtrl: _u3BarcodeCtrl,
-                          retailCtrl: _u3RetailCtrl,
-                          wholesaleCtrl: _u3WholesaleCtrl,
-                          factorCtrl: _u3FactorCtrl,
-                          factorHint: AppStrings.conversionFactor3,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-            // ─── الوحدة الافتراضية ───
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children:[
-                    const Text(AppStrings.defaultUnit, style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    SegmentedButton<int>(
-                      segments:[
-                        const ButtonSegment(value: 1, label: Text('الأولى')),
-                        if (_hasUnit2) const ButtonSegment(value: 2, label: Text('الثانية')),
-                        if (_hasUnit3) const ButtonSegment(value: 3, label: Text('الثالثة')),
-                      ],
-                      selected: {_defaultUnit},
-                      onSelectionChanged: (set) => setState(() => _defaultUnit = set.first),
+                    // 2. قائمة العواميد (تعتمد على المجموعة)
+                    DropdownButtonFormField<int>(
+                      value: _selectedColumnId,
+                      decoration: InputDecoration(
+                        labelText: 'اختر العمود',
+                        border: const OutlineInputBorder(),
+                        // تلوين الحقل بالأحمر إذا لم يكن هناك عواميد للتنبيه
+                        fillColor: _columnsForSelectedCategory.isEmpty && _selectedCategoryId != null ? Colors.red.shade50 : null,
+                        filled: _columnsForSelectedCategory.isEmpty && _selectedCategoryId != null,
+                      ),
+                      items: _columnsForSelectedCategory.map((col) => DropdownMenuItem(value: col.id, child: Text(col.name))).toList(),
+                      validator: (val) => val == null ? 'يجب اختيار العمود' : null,
+                      onChanged: (val) => setState(() => _selectedColumnId = val),
+                      hint: Text(_columnsForSelectedCategory.isEmpty ? 'لا يوجد عواميد في هذه المجموعة!' : 'اختر العمود'),
                     ),
                   ],
                 ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ─── القسم الثاني: بيانات المادة الأساسية ───
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children:[
+                    Row(
+                      children:[
+                        Expanded(child: TextFormField(controller: _codeCtrl, decoration: const InputDecoration(labelText: AppStrings.productCode, border: OutlineInputBorder()), validator: (v) => v!.isEmpty ? AppStrings.fieldRequired : null)),
+                        const SizedBox(width: 8),
+                        Expanded(flex: 2, child: TextFormField(controller: _nameCtrl, decoration: const InputDecoration(labelText: AppStrings.productName, border: OutlineInputBorder()), validator: (v) => v!.isEmpty ? AppStrings.fieldRequired : null)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children:[
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: _currency,
+                            decoration: const InputDecoration(labelText: 'عملة المادة', border: OutlineInputBorder()),
+                            items: const[DropdownMenuItem(value: 'SYP', child: Text('ليرة سورية')), DropdownMenuItem(value: 'USD', child: Text('دولار أمريكي'))],
+                            onChanged: (val) => setState(() => _currency = val!),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Row(
+                          children:[
+                            const Text('حالة المادة:'),
+                            Switch(value: _isActive, onChanged: (val) => setState(() => _isActive = val), activeColor: AppColors.primary),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ─── القسم الثالث: الوحدات والأسعار ───
+            _buildUnitCard(1, 'الوحدة الأساسية (إجبارية)', _u1NameCtrl, null, _u1RetailCtrl, _u1WholesaleCtrl),
+            const SizedBox(height: 8),
+
+            SwitchListTile(
+              title: const Text(AppStrings.addUnit2),
+              value: _hasUnit2,
+              onChanged: (v) => setState(() { _hasUnit2 = v; if (!v) _hasUnit3 = false; if(_defaultUnit > 1 && !v) _defaultUnit = 1; }),
+            ),
+            if (_hasUnit2) _buildUnitCard(2, 'الوحدة الثانية', _u2NameCtrl, _u2FactorCtrl, _u2RetailCtrl, _u2WholesaleCtrl),
+
+            if (_hasUnit2)
+              SwitchListTile(
+                title: const Text(AppStrings.addUnit3),
+                value: _hasUnit3,
+                onChanged: (v) => setState(() { _hasUnit3 = v; if(_defaultUnit > 2 && !v) _defaultUnit = 2; }),
+              ),
+            if (_hasUnit3) _buildUnitCard(3, 'الوحدة الثالثة', _u3NameCtrl, _u3FactorCtrl, _u3RetailCtrl, _u3WholesaleCtrl),
+
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 50,
+              child: FilledButton.icon(
+                onPressed: _save,
+                icon: const Icon(Icons.save),
+                label: const Text(AppStrings.save, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ),
             const SizedBox(height: 32),
           ],
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: Colors.red[800]),
-          onPressed: _saveProduct,
-          child: const Text(AppStrings.save),
-        ),
-      ),
     );
   }
 
-  Widget _buildUnitCard({
-    required String title,
-    required TextEditingController nameCtrl,
-    required TextEditingController barcodeCtrl,
-    required TextEditingController retailCtrl,
-    required TextEditingController wholesaleCtrl,
-    bool isMandatory = false,
-  }) {
+  Widget _buildUnitCard(int unitNum, String title, TextEditingController nameCtrl, TextEditingController? factorCtrl, TextEditingController rCtrl, TextEditingController wCtrl) {
     return Card(
+      color: Colors.blue.shade50,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.blue.shade200)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.secondary)),
-            const Divider(),
-            _buildUnitFields(
-                nameCtrl: nameCtrl,
-                barcodeCtrl: barcodeCtrl,
-                retailCtrl: retailCtrl,
-                wholesaleCtrl: wholesaleCtrl,
-                isMandatory: isMandatory
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children:[
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                Row(
+                  children:[
+                    const Text('افتراضية', style: TextStyle(fontSize: 12)),
+                    Radio<int>(value: unitNum, groupValue: _defaultUnit, onChanged: (v) => setState(() => _defaultUnit = v!)),
+                  ],
+                )
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children:[
+                Expanded(child: TextFormField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'اسم الوحدة', isDense: true, border: OutlineInputBorder(), filled: true, fillColor: Colors.white), validator: (v) => v!.isEmpty ? '*' : null)),
+                if (factorCtrl != null) ...[
+                  const SizedBox(width: 8),
+                  Expanded(child: TextFormField(controller: factorCtrl, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'تساوي كم ${unitNum==2? _u1NameCtrl.text : _u2NameCtrl.text}', isDense: true, border: const OutlineInputBorder(), filled: true, fillColor: Colors.white), validator: (v) => v!.isEmpty ? '*' : null)),
+                ]
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children:[
+                Expanded(child: TextFormField(controller: rCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر المستهلك', isDense: true, border: OutlineInputBorder(), filled: true, fillColor: Colors.white), validator: (v) => v!.isEmpty ? '*' : null)),
+                const SizedBox(width: 8),
+                Expanded(child: TextFormField(controller: wCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر المحل', isDense: true, border: OutlineInputBorder(), filled: true, fillColor: Colors.white), validator: (v) => v!.isEmpty ? '*' : null)),
+              ],
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildUnitFields({
-    required TextEditingController nameCtrl,
-    required TextEditingController barcodeCtrl,
-    required TextEditingController retailCtrl,
-    required TextEditingController wholesaleCtrl,
-    TextEditingController? factorCtrl,
-    String? factorHint,
-    bool isMandatory = true,
-  }) {
-    return Column(
-      children:[
-        TextFormField(
-          controller: nameCtrl,
-          decoration: const InputDecoration(labelText: 'اسم الوحدة (مثال: قطعة، علبة)'),
-          validator: (v) => isMandatory && v!.isEmpty ? AppStrings.fieldRequired : null,
-        ),
-        const SizedBox(height: 12),
-        TextFormField(
-          controller: barcodeCtrl,
-          decoration: InputDecoration(
-            labelText: 'باركود هذه الوحدة',
-            suffixIcon: IconButton(
-                icon: const Icon(Icons.qr_code_scanner),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('سيتم تفعيل الكاميرا لاحقاً')));
-                }
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (factorCtrl != null) ...[
-          TextFormField(
-            controller: factorCtrl,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: factorHint),
-            validator: (v) => isMandatory && v!.isEmpty ? AppStrings.fieldRequired : null,
-          ),
-          const SizedBox(height: 12),
-        ],
-        Row(
-          children:[
-            Expanded(
-              child: TextFormField(
-                controller: retailCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: AppStrings.priceRetail),
-                validator: (v) => isMandatory && v!.isEmpty ? AppStrings.fieldRequired : null,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: wholesaleCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: AppStrings.priceWholesale),
-                validator: (v) => isMandatory && v!.isEmpty ? AppStrings.fieldRequired : null,
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

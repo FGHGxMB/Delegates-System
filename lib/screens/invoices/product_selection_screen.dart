@@ -5,7 +5,8 @@ import '../../database/daos/catalog_dao.dart';
 import '../../database/database.dart';
 
 class ProductSelectionScreen extends ConsumerStatefulWidget {
-  const ProductSelectionScreen({Key? key}) : super(key: key);
+  final bool isSingleSelection;
+  const ProductSelectionScreen({Key? key, this.isSingleSelection = false}) : super(key: key);
 
   @override
   ConsumerState<ProductSelectionScreen> createState() => _ProductSelectionScreenState();
@@ -60,7 +61,7 @@ class _ProductSelectionScreenState extends ConsumerState<ProductSelectionScreen>
                 ),
               ),
             ),
-            floatingActionButton: _selectedProducts.isNotEmpty
+            floatingActionButton: (!widget.isSingleSelection && _selectedProducts.isNotEmpty)
                 ? FloatingActionButton.extended(
               onPressed: () => Navigator.pop(context, _selectedProducts.toList()),
               label: Text('إضافة ${_selectedProducts.length} مواد'),
@@ -88,10 +89,10 @@ class _ProductSelectionScreenState extends ConsumerState<ProductSelectionScreen>
                     if (products.isEmpty) return const Center(child: Text('لا توجد مواد'));
 
                     return GridView.builder(
-                      padding: const EdgeInsets.all(8).copyWith(bottom: 80), // ترك مساحة للزر العائم
+                      padding: const EdgeInsets.all(8).copyWith(bottom: 80),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: category.gridColumns, // الأعمدة حسب تحديدك
-                        childAspectRatio: 2.5, // نسبة العرض للطول
+                        crossAxisCount: category.gridColumns > 0 ? category.gridColumns : 2,
+                        mainAxisExtent: 90, // 👈 ارتفاع ثابت يمنع الخطأ الأحمر تماماً
                         crossAxisSpacing: 8,
                         mainAxisSpacing: 8,
                       ),
@@ -102,10 +103,14 @@ class _ProductSelectionScreenState extends ConsumerState<ProductSelectionScreen>
 
                         return InkWell(
                           onTap: () {
-                            setState(() {
-                              if (isSelected) _selectedProducts.remove(product);
-                              else _selectedProducts.add(product);
-                            });
+                            if (widget.isSingleSelection) {
+                              Navigator.pop(context, [product]);
+                            } else {
+                              setState(() {
+                                if (isSelected) _selectedProducts.remove(product);
+                                else _selectedProducts.add(product);
+                              });
+                            }
                           },
                           child: Card(
                             color: isSelected ? Colors.blue[100] : Colors.white,
@@ -114,12 +119,29 @@ class _ProductSelectionScreenState extends ConsumerState<ProductSelectionScreen>
                               side: BorderSide(color: isSelected ? Colors.blue : Colors.grey.shade300, width: isSelected ? 2 : 1),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.all(8.0),
+                              padding: const EdgeInsets.all(4.0),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children:[
-                                  Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
-                                  Text(product.code, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                                  Expanded(
+                                    child: Center(
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown, // 👈 يقوم بتصغير الخط تلقائياً إذا كان طويلاً
+                                        child: Text(
+                                          product.name,
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                        product.code,
+                                        style: const TextStyle(color: Colors.grey, fontSize: 10)
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
