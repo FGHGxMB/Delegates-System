@@ -5,10 +5,17 @@ import '../../database/database.dart';
 import '../../database/daos/catalog_dao.dart';
 import '../../config/app_colors.dart';
 import '../../config/app_strings.dart';
-import 'columns_screen.dart';
+import 'products_screen.dart';
 
-class CategoriesScreen extends ConsumerWidget {
-  const CategoriesScreen({Key? key}) : super(key: key);
+class ColumnsScreen extends ConsumerWidget {
+  final int categoryId;
+  final String categoryName;
+
+  const ColumnsScreen({
+    Key? key,
+    required this.categoryId,
+    required this.categoryName,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -16,71 +23,75 @@ class CategoriesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إدارة المجموعات'),
+        title: Text('عواميد: $categoryName'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
-      body: StreamBuilder<List<ProductCategory>>(
-        stream: catalogDao.watchCategories(),
+      body: StreamBuilder<List<ProductColumn>>(
+        stream: catalogDao.watchColumnsByCategory(categoryId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          final categories = snapshot.data ??[];
+          final columns = snapshot.data ??[];
 
-          if (categories.isEmpty) {
-            return const Center(child: Text('لا توجد مجموعات حالياً. أضف مجموعة جديدة.'));
+          if (columns.isEmpty) {
+            return const Center(child: Text('لا توجد عواميد. أضف عاموداً جديداً.'));
           }
 
           return ReorderableListView.builder(
-            itemCount: categories.length,
+            itemCount: columns.length,
             onReorder: (oldIndex, newIndex) {
               if (newIndex > oldIndex) newIndex -= 1;
-              final item = categories.removeAt(oldIndex);
-              categories.insert(newIndex, item);
-              catalogDao.updateCategoriesOrder(categories);
+              final item = columns.removeAt(oldIndex);
+              columns.insert(newIndex, item);
+              catalogDao.updateColumnsOrder(columns); // ترتيب العواميد
             },
             itemBuilder: (context, index) {
-              final category = categories[index];
+              final column = columns[index];
               return Card(
-                key: ValueKey(category.id),
+                key: ValueKey(column.id),
                 margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                color: category.isVisible ? Colors.white : Colors.grey.shade300,
+                color: column.isVisible ? Colors.white : Colors.grey.shade300,
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  leading: const Icon(Icons.drag_handle, color: Colors.grey),
+                  leading: const Icon(Icons.drag_indicator, color: Colors.grey),
                   title: Text(
-                    category.name,
+                    column.name,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      decoration: category.isVisible ? null : TextDecoration.lineThrough,
-                      color: category.isVisible ? Colors.black : Colors.grey.shade600,
+                      decoration: column.isVisible ? null : TextDecoration.lineThrough,
+                      color: column.isVisible ? Colors.black : Colors.grey.shade600,
                     ),
                   ),
-                  subtitle: Text(category.isVisible ? 'مرئية' : 'مخفية', style: TextStyle(color: category.isVisible ? Colors.green : Colors.red)),
+                  subtitle: Text(
+                      column.isVisible ? 'مرئي' : 'مخفي',
+                      style: TextStyle(color: column.isVisible ? Colors.green : Colors.red)
+                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children:[
                       // زر الإخفاء / الإظهار
                       IconButton(
-                        icon: Icon(category.isVisible ? Icons.visibility : Icons.visibility_off, color: Colors.blue),
-                        onPressed: () => catalogDao.toggleCategoryVisibility(category),
+                        icon: Icon(column.isVisible ? Icons.visibility : Icons.visibility_off, color: Colors.blue),
+                        onPressed: () => catalogDao.toggleColumnVisibility(column),
                       ),
                       // زر الحذف
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _confirmDelete(context, catalogDao, category),
+                        onPressed: () => _confirmDeleteColumn(context, catalogDao, column),
                       ),
                     ],
                   ),
                   onTap: () {
-                    // الانتقال الحقيقي لشاشة العواميد
+                    // الانتقال الحقيقي لشاشة المواد التابعة لهذا العامود
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ColumnsScreen(
-                          categoryId: category.id,
-                          categoryName: category.name,
+                        builder: (context) => ProductsScreen(
+                          categoryId: categoryId,
+                          columnId: column.id,
+                          columnName: column.name,
                         ),
                       ),
                     );
@@ -92,25 +103,25 @@ class CategoriesScreen extends ConsumerWidget {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddCategoryDialog(context, catalogDao),
+        onPressed: () => _showAddColumnDialog(context, catalogDao),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('مجموعة جديدة', style: TextStyle(color: Colors.white)),
+        label: const Text('عامود جديد', style: TextStyle(color: Colors.white)),
       ),
     );
   }
 
-  // نافذة إضافة مجموعة (تطلب الاسم فقط)
-  void _showAddCategoryDialog(BuildContext context, CatalogDao dao) {
+  // نافذة إضافة عامود
+  void _showAddColumnDialog(BuildContext context, CatalogDao dao) {
     final nameController = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('إضافة مجموعة جديدة'),
+        title: const Text('إضافة عامود جديد'),
         content: TextField(
           controller: nameController,
           decoration: const InputDecoration(
-            labelText: 'اسم المجموعة',
+            labelText: 'اسم العامود',
             border: OutlineInputBorder(),
           ),
           autofocus: true,
@@ -124,8 +135,7 @@ class CategoriesScreen extends ConsumerWidget {
             onPressed: () async {
               final name = nameController.text.trim();
               if (name.isNotEmpty) {
-                // لم نعد نسأل عن الأعمدة، نرسلها كـ 2 افتراضياً للحفاظ على سلامة الداتابيز القديمة
-                await dao.addCategory(name, 2);
+                await dao.addColumn(categoryId, name); // إضافة العامود للمجموعة المحددة
                 if (ctx.mounted) Navigator.pop(ctx);
               }
             },
@@ -137,23 +147,23 @@ class CategoriesScreen extends ConsumerWidget {
   }
 
   // نافذة تأكيد الحذف
-  void _confirmDelete(BuildContext context, CatalogDao dao, ProductCategory category) {
+  void _confirmDeleteColumn(BuildContext context, CatalogDao dao, ProductColumn column) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text(AppStrings.warning),
-        content: Text('هل أنت متأكد من حذف المجموعة "${category.name}"؟\nلا يمكن حذف المجموعة إذا كانت تحتوي على مواد.'),
+        content: Text('هل أنت متأكد من حذف العامود "${column.name}"؟\nلا يمكن الحذف إذا كان يحتوي على مواد.'),
         actions:[
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text(AppStrings.no)),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              final success = await dao.deleteCategoryWithColumns(category.id);
+              final success = await dao.deleteColumn(column.id);
               if (ctx.mounted) {
                 Navigator.pop(ctx);
                 if (!success) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('عذراً، لا يمكن حذف مجموعة تحتوي على مواد!'), backgroundColor: Colors.red),
+                    const SnackBar(content: Text('لا يمكن حذف العامود لأنه يحتوي على مواد!'), backgroundColor: Colors.red),
                   );
                 }
               }

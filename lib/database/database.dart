@@ -10,11 +10,12 @@ import 'tables.dart';
 // هذا السطر مهم جداً، يخبر Drift بكتابة كود التوليد في هذا الملف
 part 'database.g.dart';
 
-@DriftDatabase(tables: [
+@DriftDatabase(tables:[
   Settings,
   Warehouses,
   Customers,
   ProductCategories,
+  ProductColumns,
   Products,
   Accounts,
   Invoices,

@@ -40,8 +40,8 @@ class ProductCategories extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().unique()();
   IntColumn get gridColumns => integer().withDefault(const Constant(2))();
-  BoolColumn get isHidden => boolean().withDefault(const Constant(false))();
   IntColumn get displayOrder => integer().withDefault(const Constant(0))();
+  BoolColumn get isVisible => boolean().withDefault(const Constant(true))();
 }
 
 // 5. جدول المواد
@@ -182,6 +182,6 @@ class ProductColumns extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get categoryId => integer().customConstraint('REFERENCES product_categories(id)')(); // ارتباط بالمجموعة
   TextColumn get name => text()();
-  BoolColumn get isHidden => boolean().withDefault(const Constant(false))(); // ميزة الإخفاء
+  BoolColumn get isVisible => boolean().withDefault(const Constant(true))();
   IntColumn get displayOrder => integer().withDefault(const Constant(0))();
 }

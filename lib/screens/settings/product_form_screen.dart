@@ -207,32 +207,46 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                     // 1. قائمة المجموعات
                     DropdownButtonFormField<int>(
                       value: _selectedCategoryId,
-                      decoration: const InputDecoration(labelText: 'اختر المجموعة', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                          labelText: 'اختر المجموعة',
+                          border: OutlineInputBorder()
+                      ),
                       items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
                       validator: (val) => val == null ? AppStrings.fieldRequired : null,
                       onChanged: (val) {
                         if (val != null && val != _selectedCategoryId) {
-                          setState(() => _selectedCategoryId = val);
+                          setState(() {
+                            _selectedCategoryId = val;
+                            _selectedColumnId = null; // 🔴 تصفير العمود لتجنب انهيار التطبيق عند تغيير المجموعة
+                            _columnsForSelectedCategory =[]; // تفريغ القائمة مؤقتاً ريثما يتم التحميل
+                          });
                           _loadColumnsForCategory(val); // جلب العواميد فوراً
                         }
                       },
                     ),
+
                     const SizedBox(height: 16),
 
-                    // 2. قائمة العواميد (تعتمد على المجموعة)
+// 2. قائمة العواميد (تعتمد على المجموعة)
                     DropdownButtonFormField<int>(
                       value: _selectedColumnId,
                       decoration: InputDecoration(
                         labelText: 'اختر العمود',
                         border: const OutlineInputBorder(),
                         // تلوين الحقل بالأحمر إذا لم يكن هناك عواميد للتنبيه
-                        fillColor: _columnsForSelectedCategory.isEmpty && _selectedCategoryId != null ? Colors.red.shade50 : null,
+                        fillColor: _columnsForSelectedCategory.isEmpty && _selectedCategoryId != null
+                            ? Colors.red.shade50
+                            : null,
                         filled: _columnsForSelectedCategory.isEmpty && _selectedCategoryId != null,
                       ),
                       items: _columnsForSelectedCategory.map((col) => DropdownMenuItem(value: col.id, child: Text(col.name))).toList(),
                       validator: (val) => val == null ? 'يجب اختيار العمود' : null,
                       onChanged: (val) => setState(() => _selectedColumnId = val),
-                      hint: Text(_columnsForSelectedCategory.isEmpty ? 'لا يوجد عواميد في هذه المجموعة!' : 'اختر العمود'),
+                      hint: Text(
+                          _columnsForSelectedCategory.isEmpty && _selectedCategoryId != null
+                              ? 'لا يوجد عواميد في هذه المجموعة!'
+                              : 'اختر العمود'
+                      ),
                     ),
                   ],
                 ),

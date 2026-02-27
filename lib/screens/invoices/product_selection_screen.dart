@@ -1,159 +1,211 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../config/app_strings.dart';
-import '../../database/daos/catalog_dao.dart';
 import '../../database/database.dart';
+import '../../database/daos/catalog_dao.dart';
+import '../../config/app_colors.dart';
+import '../../config/app_strings.dart';
 
 class ProductSelectionScreen extends ConsumerStatefulWidget {
   final bool isSingleSelection;
-  const ProductSelectionScreen({Key? key, this.isSingleSelection = false}) : super(key: key);
+
+  const ProductSelectionScreen({
+    Key? key,
+    this.isSingleSelection = false,
+  }) : super(key: key);
 
   @override
   ConsumerState<ProductSelectionScreen> createState() => _ProductSelectionScreenState();
 }
 
 class _ProductSelectionScreenState extends ConsumerState<ProductSelectionScreen> {
-  String _searchQuery = '';
-  // قائمة لحفظ المواد المحددة لإضافتها دفعة واحدة
+  // قائمة لتخزين المواد التي قام المندوب بتحديدها
   final Set<Product> _selectedProducts = {};
+  String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
-    final dao = ref.watch(catalogDaoProvider);
+    final catalogDao = ref.watch(catalogDaoProvider);
 
-    return FutureBuilder<List<ProductCategory>>(
-      future: dao.db.select(dao.db.productCategories).get(),
-      builder: (context, catSnapshot) {
-        if (!catSnapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        final categories = catSnapshot.data!;
+    return StreamBuilder<List<ProductCategory>>(
+      stream: catalogDao.watchVisibleCategories(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+
+        final categories = snapshot.data ??[];
+        if (categories.isEmpty) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('اختيار المواد')),
+            body: const Center(child: Text('لا توجد مجموعات مرئية.')),
+          );
+        }
 
         return DefaultTabController(
           length: categories.length,
           child: Scaffold(
             appBar: AppBar(
-              title: const Text('تحديد المواد'),
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(100),
-                child: Column(
-                  children:[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                      child: TextField(
-                        onChanged: (val) => setState(() => _searchQuery = val),
-                        decoration: InputDecoration(
-                          hintText: AppStrings.search,
-                          prefixIcon: const Icon(Icons.search),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                        ),
+              title: const Text('إضافة مواد للفاتورة'),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              bottom: TabBar(
+                isScrollable: true,
+                indicatorColor: Colors.white,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                tabs: categories.map((c) => Tab(text: c.name)).toList(),
+              ),
+              actions:[
+                if (_selectedProducts.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Center(
+                      child: Badge(
+                        label: Text('${_selectedProducts.length}'),
+                        child: const Icon(Icons.shopping_cart),
                       ),
                     ),
-                    TabBar(
-                      isScrollable: true,
-                      indicatorColor: Colors.white,
-                      labelColor: Colors.white,
-                      unselectedLabelColor: Colors.white70,
-                      tabs: categories.map((c) => Tab(text: c.name)).toList(),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+              ],
             ),
+            body: Column(
+              children:[
+                // شريط البحث
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: AppStrings.search,
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                    onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+                  ),
+                ),
+                // التبويبات (المجموعات)
+                Expanded(
+                  child: TabBarView(
+                    children: categories.map((category) {
+                      return _buildCategoryView(context, catalogDao, category.id);
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+            // زر الإضافة النهائي (يظهر فقط إذا تم تحديد مواد)
             floatingActionButton: (!widget.isSingleSelection && _selectedProducts.isNotEmpty)
                 ? FloatingActionButton.extended(
-              onPressed: () => Navigator.pop(context, _selectedProducts.toList()),
-              label: Text('إضافة ${_selectedProducts.length} مواد'),
-              icon: const Icon(Icons.check),
-              backgroundColor: Colors.green,
+              onPressed: () {
+                Navigator.pop(context, _selectedProducts.toList());
+              },
+              backgroundColor: AppColors.success,
+              icon: const Icon(Icons.check, color: Colors.white),
+              label: Text('إضافة ${_selectedProducts.length} مادة', style: const TextStyle(color: Colors.white)),
             )
                 : null,
-            body: TabBarView(
-              children: categories.map((category) {
-                return StreamBuilder<List<Product>>(
-                  stream: dao.watchActiveProductsByCategory(category.id),
-                  builder: (context, prodSnapshot) {
-                    if (!prodSnapshot.hasData) return const Center(child: CircularProgressIndicator());
-                    var products = prodSnapshot.data!;
+          ),
+        );
+      },
+    );
+  }
 
-                    if (_searchQuery.trim().isNotEmpty) {
-                      products = products.where((p) =>
-                      p.name.contains(_searchQuery) || p.code.contains(_searchQuery) ||
-                          (p.unit1Barcode?.contains(_searchQuery) ?? false) ||
-                          (p.unit2Barcode?.contains(_searchQuery) ?? false) ||
-                          (p.unit3Barcode?.contains(_searchQuery) ?? false)
-                      ).toList();
-                    }
+  // بناء محتوى المجموعة (جلب العواميد المرئية، ثم جلب موادها)
+  Widget _buildCategoryView(BuildContext context, CatalogDao dao, int categoryId) {
+    return StreamBuilder<List<ProductColumn>>(
+      stream: dao.watchVisibleColumnsByCategory(categoryId),
+      builder: (context, colSnapshot) {
+        if (colSnapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-                    if (products.isEmpty) return const Center(child: Text('لا توجد مواد'));
+        final columns = colSnapshot.data ??[];
+        if (columns.isEmpty) {
+          return const Center(child: Text('لا توجد عواميد مرئية في هذه المجموعة.'));
+        }
 
-                    return GridView.builder(
-                      padding: const EdgeInsets.all(8).copyWith(bottom: 80),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: category.gridColumns > 0 ? category.gridColumns : 2,
-                        mainAxisExtent: 90, // 👈 ارتفاع ثابت يمنع الخطأ الأحمر تماماً
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
-                      itemCount: products.length,
-                      itemBuilder: (context, index) {
-                        final product = products[index];
-                        final isSelected = _selectedProducts.contains(product);
+        // بناء قائمة بالعواميد وتحتها موادها
+        return ListView.builder(
+          padding: const EdgeInsets.only(bottom: 80), // مساحة للزر العائم
+          itemCount: columns.length,
+          itemBuilder: (context, index) {
+            final column = columns[index];
+            return _buildColumnSection(dao, column);
+          },
+        );
+      },
+    );
+  }
 
-                        return InkWell(
-                          onTap: () {
-                            if (widget.isSingleSelection) {
-                              Navigator.pop(context, [product]);
-                            } else {
-                              setState(() {
-                                if (isSelected) _selectedProducts.remove(product);
-                                else _selectedProducts.add(product);
-                              });
-                            }
-                          },
-                          child: Card(
-                            color: isSelected ? Colors.blue[100] : Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              side: BorderSide(color: isSelected ? Colors.blue : Colors.grey.shade300, width: isSelected ? 2 : 1),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children:[
-                                  Expanded(
-                                    child: Center(
-                                      child: FittedBox(
-                                        fit: BoxFit.scaleDown, // 👈 يقوم بتصغير الخط تلقائياً إذا كان طويلاً
-                                        child: Text(
-                                          product.name,
-                                          style: const TextStyle(fontWeight: FontWeight.bold),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                        product.code,
-                                        style: const TextStyle(color: Colors.grey, fontSize: 10)
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    );
+  // بناء قسم العامود والمواد الخاصة به
+  Widget _buildColumnSection(CatalogDao dao, ProductColumn column) {
+    return StreamBuilder<List<Product>>(
+      stream: dao.watchActiveProductsByColumn(column.id),
+      builder: (context, prodSnapshot) {
+        if (!prodSnapshot.hasData) return const SizedBox.shrink();
+
+        // تطبيق فلتر البحث (إن وجد)
+        final products = prodSnapshot.data!.where((p) {
+          return p.name.toLowerCase().contains(_searchQuery) ||
+              p.code.toLowerCase().contains(_searchQuery);
+        }).toList();
+
+        if (products.isEmpty) return const SizedBox.shrink(); // إخفاء العامود إذا لم يكن به مواد أو لم يطابق البحث
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children:[
+            // عنوان العامود (تصميم مميز)
+            Container(
+              width: double.infinity,
+              color: Colors.grey.shade200,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                column.name,
+                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+              ),
+            ),
+            // قائمة المواد داخل هذا العامود
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                final product = products[index];
+                final isSelected = _selectedProducts.any((p) => p.id == product.id);
+
+                // 🔴 إذا كان اختياراً فردياً (للمادة المخادعة)
+                if (widget.isSingleSelection) {
+                  return ListTile(
+                    title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('الرمز: ${product.code} | السعر: ${product.unit1PriceRetail}'),
+                    trailing: const Icon(Icons.touch_app, color: AppColors.primary),
+                    onTap: () {
+                      // إرجاع المادة فوراً بمجرد الضغط عليها
+                      Navigator.pop(context, [product]);
+                    },
+                  );
+                }
+
+                // 🔴 إذا كان اختياراً متعدداً (لإضافة مواد للفاتورة)
+                return CheckboxListTile(
+                  title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text('الرمز: ${product.code} | السعر: ${product.unit1PriceRetail}'),
+                  value: isSelected,
+                  activeColor: AppColors.primary,
+                  onChanged: (bool? checked) {
+                    setState(() {
+                      if (checked == true) {
+                        _selectedProducts.add(product);
+                      } else {
+                        _selectedProducts.removeWhere((p) => p.id == product.id);
+                      }
+                    });
                   },
                 );
-              }).toList(),
+              },
             ),
-          ),
+          ],
         );
       },
     );

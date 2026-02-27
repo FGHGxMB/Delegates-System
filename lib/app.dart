@@ -96,14 +96,6 @@ final goRouter = GoRouter(
         path: '/manage_categories',
         builder: (context, state) => const CategoriesScreen()
     ),
-    GoRoute(
-      path: '/category_products/:categoryId/:categoryName',
-      builder: (context, state) {
-        final categoryId = int.parse(state.pathParameters['categoryId']!);
-        final categoryName = state.pathParameters['categoryName']!;
-        return ProductsScreen(categoryId: categoryId, categoryName: categoryName);
-      },
-    ),
     // [جديد] مسار شاشة إضافة/تعديل المادة
     GoRoute(
       path: '/product_form/:categoryId/:productId',

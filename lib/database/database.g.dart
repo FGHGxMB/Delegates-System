@@ -1184,16 +1184,6 @@ class $ProductCategoriesTable extends ProductCategories
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(2));
-  static const VerificationMeta _isHiddenMeta =
-      const VerificationMeta('isHidden');
-  @override
-  late final GeneratedColumn<bool> isHidden = GeneratedColumn<bool>(
-      'is_hidden', aliasedName, false,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("is_hidden" IN (0, 1))'),
-      defaultValue: const Constant(false));
   static const VerificationMeta _displayOrderMeta =
       const VerificationMeta('displayOrder');
   @override
@@ -1202,9 +1192,19 @@ class $ProductCategoriesTable extends ProductCategories
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
+  static const VerificationMeta _isVisibleMeta =
+      const VerificationMeta('isVisible');
+  @override
+  late final GeneratedColumn<bool> isVisible = GeneratedColumn<bool>(
+      'is_visible', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_visible" IN (0, 1))'),
+      defaultValue: const Constant(true));
   @override
   List<GeneratedColumn> get $columns =>
-      [id, name, gridColumns, isHidden, displayOrder];
+      [id, name, gridColumns, displayOrder, isVisible];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1230,15 +1230,15 @@ class $ProductCategoriesTable extends ProductCategories
           gridColumns.isAcceptableOrUnknown(
               data['grid_columns']!, _gridColumnsMeta));
     }
-    if (data.containsKey('is_hidden')) {
-      context.handle(_isHiddenMeta,
-          isHidden.isAcceptableOrUnknown(data['is_hidden']!, _isHiddenMeta));
-    }
     if (data.containsKey('display_order')) {
       context.handle(
           _displayOrderMeta,
           displayOrder.isAcceptableOrUnknown(
               data['display_order']!, _displayOrderMeta));
+    }
+    if (data.containsKey('is_visible')) {
+      context.handle(_isVisibleMeta,
+          isVisible.isAcceptableOrUnknown(data['is_visible']!, _isVisibleMeta));
     }
     return context;
   }
@@ -1255,10 +1255,10 @@ class $ProductCategoriesTable extends ProductCategories
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
       gridColumns: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}grid_columns'])!,
-      isHidden: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}is_hidden'])!,
       displayOrder: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}display_order'])!,
+      isVisible: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_visible'])!,
     );
   }
 
@@ -1272,22 +1272,22 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
   final int id;
   final String name;
   final int gridColumns;
-  final bool isHidden;
   final int displayOrder;
+  final bool isVisible;
   const ProductCategory(
       {required this.id,
       required this.name,
       required this.gridColumns,
-      required this.isHidden,
-      required this.displayOrder});
+      required this.displayOrder,
+      required this.isVisible});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
     map['grid_columns'] = Variable<int>(gridColumns);
-    map['is_hidden'] = Variable<bool>(isHidden);
     map['display_order'] = Variable<int>(displayOrder);
+    map['is_visible'] = Variable<bool>(isVisible);
     return map;
   }
 
@@ -1296,8 +1296,8 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
       id: Value(id),
       name: Value(name),
       gridColumns: Value(gridColumns),
-      isHidden: Value(isHidden),
       displayOrder: Value(displayOrder),
+      isVisible: Value(isVisible),
     );
   }
 
@@ -1308,8 +1308,8 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       gridColumns: serializer.fromJson<int>(json['gridColumns']),
-      isHidden: serializer.fromJson<bool>(json['isHidden']),
       displayOrder: serializer.fromJson<int>(json['displayOrder']),
+      isVisible: serializer.fromJson<bool>(json['isVisible']),
     );
   }
   @override
@@ -1319,8 +1319,8 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'gridColumns': serializer.toJson<int>(gridColumns),
-      'isHidden': serializer.toJson<bool>(isHidden),
       'displayOrder': serializer.toJson<int>(displayOrder),
+      'isVisible': serializer.toJson<bool>(isVisible),
     };
   }
 
@@ -1328,14 +1328,14 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
           {int? id,
           String? name,
           int? gridColumns,
-          bool? isHidden,
-          int? displayOrder}) =>
+          int? displayOrder,
+          bool? isVisible}) =>
       ProductCategory(
         id: id ?? this.id,
         name: name ?? this.name,
         gridColumns: gridColumns ?? this.gridColumns,
-        isHidden: isHidden ?? this.isHidden,
         displayOrder: displayOrder ?? this.displayOrder,
+        isVisible: isVisible ?? this.isVisible,
       );
   ProductCategory copyWithCompanion(ProductCategoriesCompanion data) {
     return ProductCategory(
@@ -1343,10 +1343,10 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
       name: data.name.present ? data.name.value : this.name,
       gridColumns:
           data.gridColumns.present ? data.gridColumns.value : this.gridColumns,
-      isHidden: data.isHidden.present ? data.isHidden.value : this.isHidden,
       displayOrder: data.displayOrder.present
           ? data.displayOrder.value
           : this.displayOrder,
+      isVisible: data.isVisible.present ? data.isVisible.value : this.isVisible,
     );
   }
 
@@ -1356,15 +1356,15 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('gridColumns: $gridColumns, ')
-          ..write('isHidden: $isHidden, ')
-          ..write('displayOrder: $displayOrder')
+          ..write('displayOrder: $displayOrder, ')
+          ..write('isVisible: $isVisible')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, name, gridColumns, isHidden, displayOrder);
+      Object.hash(id, name, gridColumns, displayOrder, isVisible);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1372,43 +1372,43 @@ class ProductCategory extends DataClass implements Insertable<ProductCategory> {
           other.id == this.id &&
           other.name == this.name &&
           other.gridColumns == this.gridColumns &&
-          other.isHidden == this.isHidden &&
-          other.displayOrder == this.displayOrder);
+          other.displayOrder == this.displayOrder &&
+          other.isVisible == this.isVisible);
 }
 
 class ProductCategoriesCompanion extends UpdateCompanion<ProductCategory> {
   final Value<int> id;
   final Value<String> name;
   final Value<int> gridColumns;
-  final Value<bool> isHidden;
   final Value<int> displayOrder;
+  final Value<bool> isVisible;
   const ProductCategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.gridColumns = const Value.absent(),
-    this.isHidden = const Value.absent(),
     this.displayOrder = const Value.absent(),
+    this.isVisible = const Value.absent(),
   });
   ProductCategoriesCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     this.gridColumns = const Value.absent(),
-    this.isHidden = const Value.absent(),
     this.displayOrder = const Value.absent(),
+    this.isVisible = const Value.absent(),
   }) : name = Value(name);
   static Insertable<ProductCategory> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<int>? gridColumns,
-    Expression<bool>? isHidden,
     Expression<int>? displayOrder,
+    Expression<bool>? isVisible,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (gridColumns != null) 'grid_columns': gridColumns,
-      if (isHidden != null) 'is_hidden': isHidden,
       if (displayOrder != null) 'display_order': displayOrder,
+      if (isVisible != null) 'is_visible': isVisible,
     });
   }
 
@@ -1416,14 +1416,14 @@ class ProductCategoriesCompanion extends UpdateCompanion<ProductCategory> {
       {Value<int>? id,
       Value<String>? name,
       Value<int>? gridColumns,
-      Value<bool>? isHidden,
-      Value<int>? displayOrder}) {
+      Value<int>? displayOrder,
+      Value<bool>? isVisible}) {
     return ProductCategoriesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       gridColumns: gridColumns ?? this.gridColumns,
-      isHidden: isHidden ?? this.isHidden,
       displayOrder: displayOrder ?? this.displayOrder,
+      isVisible: isVisible ?? this.isVisible,
     );
   }
 
@@ -1439,11 +1439,11 @@ class ProductCategoriesCompanion extends UpdateCompanion<ProductCategory> {
     if (gridColumns.present) {
       map['grid_columns'] = Variable<int>(gridColumns.value);
     }
-    if (isHidden.present) {
-      map['is_hidden'] = Variable<bool>(isHidden.value);
-    }
     if (displayOrder.present) {
       map['display_order'] = Variable<int>(displayOrder.value);
+    }
+    if (isVisible.present) {
+      map['is_visible'] = Variable<bool>(isVisible.value);
     }
     return map;
   }
@@ -1454,8 +1454,8 @@ class ProductCategoriesCompanion extends UpdateCompanion<ProductCategory> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('gridColumns: $gridColumns, ')
-          ..write('isHidden: $isHidden, ')
-          ..write('displayOrder: $displayOrder')
+          ..write('displayOrder: $displayOrder, ')
+          ..write('isVisible: $isVisible')
           ..write(')'))
         .toString();
   }
@@ -1489,16 +1489,16 @@ class $ProductColumnsTable extends ProductColumns
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
       'name', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _isHiddenMeta =
-      const VerificationMeta('isHidden');
+  static const VerificationMeta _isVisibleMeta =
+      const VerificationMeta('isVisible');
   @override
-  late final GeneratedColumn<bool> isHidden = GeneratedColumn<bool>(
-      'is_hidden', aliasedName, false,
+  late final GeneratedColumn<bool> isVisible = GeneratedColumn<bool>(
+      'is_visible', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("is_hidden" IN (0, 1))'),
-      defaultValue: const Constant(false));
+          GeneratedColumn.constraintIsAlways('CHECK ("is_visible" IN (0, 1))'),
+      defaultValue: const Constant(true));
   static const VerificationMeta _displayOrderMeta =
       const VerificationMeta('displayOrder');
   @override
@@ -1509,7 +1509,7 @@ class $ProductColumnsTable extends ProductColumns
       defaultValue: const Constant(0));
   @override
   List<GeneratedColumn> get $columns =>
-      [id, categoryId, name, isHidden, displayOrder];
+      [id, categoryId, name, isVisible, displayOrder];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1537,9 +1537,9 @@ class $ProductColumnsTable extends ProductColumns
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
-    if (data.containsKey('is_hidden')) {
-      context.handle(_isHiddenMeta,
-          isHidden.isAcceptableOrUnknown(data['is_hidden']!, _isHiddenMeta));
+    if (data.containsKey('is_visible')) {
+      context.handle(_isVisibleMeta,
+          isVisible.isAcceptableOrUnknown(data['is_visible']!, _isVisibleMeta));
     }
     if (data.containsKey('display_order')) {
       context.handle(
@@ -1562,8 +1562,8 @@ class $ProductColumnsTable extends ProductColumns
           .read(DriftSqlType.int, data['${effectivePrefix}category_id'])!,
       name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
-      isHidden: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}is_hidden'])!,
+      isVisible: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_visible'])!,
       displayOrder: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}display_order'])!,
     );
@@ -1579,13 +1579,13 @@ class ProductColumn extends DataClass implements Insertable<ProductColumn> {
   final int id;
   final int categoryId;
   final String name;
-  final bool isHidden;
+  final bool isVisible;
   final int displayOrder;
   const ProductColumn(
       {required this.id,
       required this.categoryId,
       required this.name,
-      required this.isHidden,
+      required this.isVisible,
       required this.displayOrder});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1593,7 +1593,7 @@ class ProductColumn extends DataClass implements Insertable<ProductColumn> {
     map['id'] = Variable<int>(id);
     map['category_id'] = Variable<int>(categoryId);
     map['name'] = Variable<String>(name);
-    map['is_hidden'] = Variable<bool>(isHidden);
+    map['is_visible'] = Variable<bool>(isVisible);
     map['display_order'] = Variable<int>(displayOrder);
     return map;
   }
@@ -1603,7 +1603,7 @@ class ProductColumn extends DataClass implements Insertable<ProductColumn> {
       id: Value(id),
       categoryId: Value(categoryId),
       name: Value(name),
-      isHidden: Value(isHidden),
+      isVisible: Value(isVisible),
       displayOrder: Value(displayOrder),
     );
   }
@@ -1615,7 +1615,7 @@ class ProductColumn extends DataClass implements Insertable<ProductColumn> {
       id: serializer.fromJson<int>(json['id']),
       categoryId: serializer.fromJson<int>(json['categoryId']),
       name: serializer.fromJson<String>(json['name']),
-      isHidden: serializer.fromJson<bool>(json['isHidden']),
+      isVisible: serializer.fromJson<bool>(json['isVisible']),
       displayOrder: serializer.fromJson<int>(json['displayOrder']),
     );
   }
@@ -1626,7 +1626,7 @@ class ProductColumn extends DataClass implements Insertable<ProductColumn> {
       'id': serializer.toJson<int>(id),
       'categoryId': serializer.toJson<int>(categoryId),
       'name': serializer.toJson<String>(name),
-      'isHidden': serializer.toJson<bool>(isHidden),
+      'isVisible': serializer.toJson<bool>(isVisible),
       'displayOrder': serializer.toJson<int>(displayOrder),
     };
   }
@@ -1635,13 +1635,13 @@ class ProductColumn extends DataClass implements Insertable<ProductColumn> {
           {int? id,
           int? categoryId,
           String? name,
-          bool? isHidden,
+          bool? isVisible,
           int? displayOrder}) =>
       ProductColumn(
         id: id ?? this.id,
         categoryId: categoryId ?? this.categoryId,
         name: name ?? this.name,
-        isHidden: isHidden ?? this.isHidden,
+        isVisible: isVisible ?? this.isVisible,
         displayOrder: displayOrder ?? this.displayOrder,
       );
   ProductColumn copyWithCompanion(ProductColumnsCompanion data) {
@@ -1650,7 +1650,7 @@ class ProductColumn extends DataClass implements Insertable<ProductColumn> {
       categoryId:
           data.categoryId.present ? data.categoryId.value : this.categoryId,
       name: data.name.present ? data.name.value : this.name,
-      isHidden: data.isHidden.present ? data.isHidden.value : this.isHidden,
+      isVisible: data.isVisible.present ? data.isVisible.value : this.isVisible,
       displayOrder: data.displayOrder.present
           ? data.displayOrder.value
           : this.displayOrder,
@@ -1663,14 +1663,15 @@ class ProductColumn extends DataClass implements Insertable<ProductColumn> {
           ..write('id: $id, ')
           ..write('categoryId: $categoryId, ')
           ..write('name: $name, ')
-          ..write('isHidden: $isHidden, ')
+          ..write('isVisible: $isVisible, ')
           ..write('displayOrder: $displayOrder')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, categoryId, name, isHidden, displayOrder);
+  int get hashCode =>
+      Object.hash(id, categoryId, name, isVisible, displayOrder);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1678,7 +1679,7 @@ class ProductColumn extends DataClass implements Insertable<ProductColumn> {
           other.id == this.id &&
           other.categoryId == this.categoryId &&
           other.name == this.name &&
-          other.isHidden == this.isHidden &&
+          other.isVisible == this.isVisible &&
           other.displayOrder == this.displayOrder);
 }
 
@@ -1686,20 +1687,20 @@ class ProductColumnsCompanion extends UpdateCompanion<ProductColumn> {
   final Value<int> id;
   final Value<int> categoryId;
   final Value<String> name;
-  final Value<bool> isHidden;
+  final Value<bool> isVisible;
   final Value<int> displayOrder;
   const ProductColumnsCompanion({
     this.id = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.name = const Value.absent(),
-    this.isHidden = const Value.absent(),
+    this.isVisible = const Value.absent(),
     this.displayOrder = const Value.absent(),
   });
   ProductColumnsCompanion.insert({
     this.id = const Value.absent(),
     required int categoryId,
     required String name,
-    this.isHidden = const Value.absent(),
+    this.isVisible = const Value.absent(),
     this.displayOrder = const Value.absent(),
   })  : categoryId = Value(categoryId),
         name = Value(name);
@@ -1707,14 +1708,14 @@ class ProductColumnsCompanion extends UpdateCompanion<ProductColumn> {
     Expression<int>? id,
     Expression<int>? categoryId,
     Expression<String>? name,
-    Expression<bool>? isHidden,
+    Expression<bool>? isVisible,
     Expression<int>? displayOrder,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (categoryId != null) 'category_id': categoryId,
       if (name != null) 'name': name,
-      if (isHidden != null) 'is_hidden': isHidden,
+      if (isVisible != null) 'is_visible': isVisible,
       if (displayOrder != null) 'display_order': displayOrder,
     });
   }
@@ -1723,13 +1724,13 @@ class ProductColumnsCompanion extends UpdateCompanion<ProductColumn> {
       {Value<int>? id,
       Value<int>? categoryId,
       Value<String>? name,
-      Value<bool>? isHidden,
+      Value<bool>? isVisible,
       Value<int>? displayOrder}) {
     return ProductColumnsCompanion(
       id: id ?? this.id,
       categoryId: categoryId ?? this.categoryId,
       name: name ?? this.name,
-      isHidden: isHidden ?? this.isHidden,
+      isVisible: isVisible ?? this.isVisible,
       displayOrder: displayOrder ?? this.displayOrder,
     );
   }
@@ -1746,8 +1747,8 @@ class ProductColumnsCompanion extends UpdateCompanion<ProductColumn> {
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
-    if (isHidden.present) {
-      map['is_hidden'] = Variable<bool>(isHidden.value);
+    if (isVisible.present) {
+      map['is_visible'] = Variable<bool>(isVisible.value);
     }
     if (displayOrder.present) {
       map['display_order'] = Variable<int>(displayOrder.value);
@@ -1761,7 +1762,7 @@ class ProductColumnsCompanion extends UpdateCompanion<ProductColumn> {
           ..write('id: $id, ')
           ..write('categoryId: $categoryId, ')
           ..write('name: $name, ')
-          ..write('isHidden: $isHidden, ')
+          ..write('isVisible: $isVisible, ')
           ..write('displayOrder: $displayOrder')
           ..write(')'))
         .toString();
@@ -6783,16 +6784,16 @@ typedef $$ProductCategoriesTableCreateCompanionBuilder
   Value<int> id,
   required String name,
   Value<int> gridColumns,
-  Value<bool> isHidden,
   Value<int> displayOrder,
+  Value<bool> isVisible,
 });
 typedef $$ProductCategoriesTableUpdateCompanionBuilder
     = ProductCategoriesCompanion Function({
   Value<int> id,
   Value<String> name,
   Value<int> gridColumns,
-  Value<bool> isHidden,
   Value<int> displayOrder,
+  Value<bool> isVisible,
 });
 
 class $$ProductCategoriesTableTableManager extends RootTableManager<
@@ -6816,29 +6817,29 @@ class $$ProductCategoriesTableTableManager extends RootTableManager<
             Value<int> id = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<int> gridColumns = const Value.absent(),
-            Value<bool> isHidden = const Value.absent(),
             Value<int> displayOrder = const Value.absent(),
+            Value<bool> isVisible = const Value.absent(),
           }) =>
               ProductCategoriesCompanion(
             id: id,
             name: name,
             gridColumns: gridColumns,
-            isHidden: isHidden,
             displayOrder: displayOrder,
+            isVisible: isVisible,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required String name,
             Value<int> gridColumns = const Value.absent(),
-            Value<bool> isHidden = const Value.absent(),
             Value<int> displayOrder = const Value.absent(),
+            Value<bool> isVisible = const Value.absent(),
           }) =>
               ProductCategoriesCompanion.insert(
             id: id,
             name: name,
             gridColumns: gridColumns,
-            isHidden: isHidden,
             displayOrder: displayOrder,
+            isVisible: isVisible,
           ),
         ));
 }
@@ -6861,13 +6862,13 @@ class $$ProductCategoriesTableFilterComposer
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
-  ColumnFilters<bool> get isHidden => $state.composableBuilder(
-      column: $state.table.isHidden,
+  ColumnFilters<int> get displayOrder => $state.composableBuilder(
+      column: $state.table.displayOrder,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
-  ColumnFilters<int> get displayOrder => $state.composableBuilder(
-      column: $state.table.displayOrder,
+  ColumnFilters<bool> get isVisible => $state.composableBuilder(
+      column: $state.table.isVisible,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -6916,13 +6917,13 @@ class $$ProductCategoriesTableOrderingComposer
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
-  ColumnOrderings<bool> get isHidden => $state.composableBuilder(
-      column: $state.table.isHidden,
+  ColumnOrderings<int> get displayOrder => $state.composableBuilder(
+      column: $state.table.displayOrder,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
-  ColumnOrderings<int> get displayOrder => $state.composableBuilder(
-      column: $state.table.displayOrder,
+  ColumnOrderings<bool> get isVisible => $state.composableBuilder(
+      column: $state.table.isVisible,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 }
@@ -6932,7 +6933,7 @@ typedef $$ProductColumnsTableCreateCompanionBuilder = ProductColumnsCompanion
   Value<int> id,
   required int categoryId,
   required String name,
-  Value<bool> isHidden,
+  Value<bool> isVisible,
   Value<int> displayOrder,
 });
 typedef $$ProductColumnsTableUpdateCompanionBuilder = ProductColumnsCompanion
@@ -6940,7 +6941,7 @@ typedef $$ProductColumnsTableUpdateCompanionBuilder = ProductColumnsCompanion
   Value<int> id,
   Value<int> categoryId,
   Value<String> name,
-  Value<bool> isHidden,
+  Value<bool> isVisible,
   Value<int> displayOrder,
 });
 
@@ -6965,28 +6966,28 @@ class $$ProductColumnsTableTableManager extends RootTableManager<
             Value<int> id = const Value.absent(),
             Value<int> categoryId = const Value.absent(),
             Value<String> name = const Value.absent(),
-            Value<bool> isHidden = const Value.absent(),
+            Value<bool> isVisible = const Value.absent(),
             Value<int> displayOrder = const Value.absent(),
           }) =>
               ProductColumnsCompanion(
             id: id,
             categoryId: categoryId,
             name: name,
-            isHidden: isHidden,
+            isVisible: isVisible,
             displayOrder: displayOrder,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required int categoryId,
             required String name,
-            Value<bool> isHidden = const Value.absent(),
+            Value<bool> isVisible = const Value.absent(),
             Value<int> displayOrder = const Value.absent(),
           }) =>
               ProductColumnsCompanion.insert(
             id: id,
             categoryId: categoryId,
             name: name,
-            isHidden: isHidden,
+            isVisible: isVisible,
             displayOrder: displayOrder,
           ),
         ));
@@ -7005,8 +7006,8 @@ class $$ProductColumnsTableFilterComposer
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
-  ColumnFilters<bool> get isHidden => $state.composableBuilder(
-      column: $state.table.isHidden,
+  ColumnFilters<bool> get isVisible => $state.composableBuilder(
+      column: $state.table.isVisible,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -7058,8 +7059,8 @@ class $$ProductColumnsTableOrderingComposer
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
-  ColumnOrderings<bool> get isHidden => $state.composableBuilder(
-      column: $state.table.isHidden,
+  ColumnOrderings<bool> get isVisible => $state.composableBuilder(
+      column: $state.table.isVisible,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
