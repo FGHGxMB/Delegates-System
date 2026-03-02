@@ -77,10 +77,10 @@ class _TransferFormScreenState extends ConsumerState<TransferFormScreen> {
         _name = data.transfer.name;
         _date = DateTime.parse(data.transfer.date);
 
-        // ملاحظة: تأكد أن هذه الأسماء مطابقة لجدولك (senderWarehouseId / receiverWarehouseId / note)
-        // إذا كان هناك خطأ هنا، غيرها حسب جدولك في tables.dart
-        _senderWarehouseId = data.transfer.fromWarehouse as int?;
-        _receiverWarehouseId = data.transfer.toWarehouse as int?;
+        // 🟢 الإصلاح الاحترافي: تحويل النص إلى رقم بأمان باستخدام int.tryParse
+        _senderWarehouseId = data.transfer.fromWarehouse != null ? int.tryParse(data.transfer.fromWarehouse!) : null;
+        _receiverWarehouseId = data.transfer.toWarehouse != null ? int.tryParse(data.transfer.toWarehouse!) : null;
+
         _noteCtrl.text = data.transfer.note ?? '';
 
         final products = await db.select(db.products).get();
@@ -216,14 +216,27 @@ class _TransferFormScreenState extends ConsumerState<TransferFormScreen> {
 
     String newStatus = issue ? 'ISSUED' : _status;
 
+    // 🟢 ميزة إضافية: حساب إجمالي الكميات كما هو مطلوب في جدولك
+    double totalQty = _lines.fold(0.0, (sum, line) => sum + line.quantity);
+
     final companion = TransfersCompanion(
       id: widget.transferId == 0 ? const drift.Value.absent() : drift.Value(widget.transferId),
+
+      // 🟢 الإصلاح: حقل transferNumber إجباري في الجداول، لذلك نعطيه قيمة (رقم فريد مبني على الوقت) للمناقلات الجديدة
+      transferNumber: widget.transferId == 0
+          ? drift.Value(DateTime.now().millisecondsSinceEpoch % 100000000)
+          : const drift.Value.absent(),
+
       name: drift.Value(_name),
       status: drift.Value(newStatus),
       date: drift.Value('${_date.year}-${_date.month.toString().padLeft(2, '0')}-${_date.day.toString().padLeft(2, '0')}'),
-      fromWarehouse: drift.Value(_senderWarehouseId! as String?),
-      toWarehouse: drift.Value(_receiverWarehouseId! as String?),
+
+      // 🟢 الإصلاح: تحويل الـ int إلى String باستخدام .toString() وليس بالـ type casting
+      fromWarehouse: drift.Value(_senderWarehouseId?.toString()),
+      toWarehouse: drift.Value(_receiverWarehouseId?.toString()),
+
       note: drift.Value(_noteCtrl.text.trim()),
+      totalQuantities: drift.Value(totalQty),
     );
 
     final linesCompanion = _lines.map((l) => TransferLinesCompanion(
@@ -235,22 +248,24 @@ class _TransferFormScreenState extends ConsumerState<TransferFormScreen> {
       quantity: drift.Value(l.quantity),
     )).toList();
 
-    // 🔴 الإضافة الجديدة: إحاطة الحفظ بـ Try/Catch لمعرفة الخطأ إن وجد
     try {
       await ref.read(transfersDaoProvider).saveTransfer(companion, linesCompanion);
 
       if (mounted) {
         setState(() => _canPopScope = true);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(issue ? 'تم تخريج المناقلة' : 'تم الحفظ')));
+        // رسالة نجاح مريحة بصرياً
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(issue ? 'تم تخريج المناقلة بنجاح' : 'تم حفظ المسودة بنجاح'),
+            backgroundColor: Colors.green
+        ));
         context.pop();
       }
     } catch (e) {
-      // 🚨 إذا فشل الحفظ، ستظهر هذه الرسالة الحمراء لتدلنا على اسم الحقل الناقص!
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('حدث خطأ أثناء الحفظ! التفاصيل: $e'),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 5),
+          duration: const Duration(seconds: 8),
         ));
       }
     }
