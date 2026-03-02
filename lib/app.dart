@@ -12,6 +12,10 @@ import 'screens/customers/customers_list_screen.dart';
 import 'screens/customers/customer_form_screen.dart';
 import 'screens/invoices/invoices_list_screen.dart';
 import 'screens/invoices/invoice_form_screen.dart';
+import 'screens/transfers/transfers_list_screen.dart';
+
+// 🔴 1. استيراد شاشة السندات الجديدة
+import 'screens/vouchers/vouchers_list_screen.dart';
 
 // استيراد الشاشات الحقيقية
 import 'screens/settings/settings_screen.dart';
@@ -28,7 +32,7 @@ class TempScreen extends StatelessWidget {
   );
 }
 
-// === الهيكل الرئيسي (MainShell) كما هو بدون تغيير ===
+// === الهيكل الرئيسي (MainShell) وتحديث شريط التنقل ===
 class MainShell extends StatelessWidget {
   final Widget child;
   const MainShell({Key? key, required this.child}) : super(key: key);
@@ -37,10 +41,13 @@ class MainShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
     int currentIndex = 0;
+
+    // 🔴 2. تحديث ترتيب التبويبات (أضفنا السندات في المنتصف)
     if (location.startsWith('/invoices')) currentIndex = 1;
-    if (location.startsWith('/transfers')) currentIndex = 2;
-    if (location.startsWith('/customers')) currentIndex = 3;
-    if (location.startsWith('/settings')) currentIndex = 4;
+    if (location.startsWith('/vouchers')) currentIndex = 2; // مسار السندات
+    if (location.startsWith('/transfers')) currentIndex = 3;
+    if (location.startsWith('/customers')) currentIndex = 4;
+    if (location.startsWith('/settings')) currentIndex = 5;
 
     return Scaffold(
       body: child,
@@ -50,14 +57,17 @@ class MainShell extends StatelessWidget {
           switch (index) {
             case 0: context.go('/'); break;
             case 1: context.go('/invoices'); break;
-            case 2: context.go('/transfers'); break;
-            case 3: context.go('/customers'); break;
-            case 4: context.go('/settings'); break;
+            case 2: context.go('/vouchers'); break; // الانتقال للسندات
+            case 3: context.go('/transfers'); break;
+            case 4: context.go('/customers'); break;
+            case 5: context.go('/settings'); break;
           }
         },
-        destinations: const [
+        destinations: const[
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'الرئيسية'),
           NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'الفواتير'),
+          // 🔴 3. إضافة أيقونة السندات في الشريط السفلي
+          NavigationDestination(icon: Icon(Icons.monetization_on_outlined), selectedIcon: Icon(Icons.monetization_on), label: 'السندات'),
           NavigationDestination(icon: Icon(Icons.swap_horiz_outlined), selectedIcon: Icon(Icons.swap_horiz), label: 'المناقلات'),
           NavigationDestination(icon: Icon(Icons.people_outlined), selectedIcon: Icon(Icons.people), label: 'الزبائن'),
           NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'الإعدادات'),
@@ -70,24 +80,25 @@ class MainShell extends StatelessWidget {
 // === تحديث الـ Router ===
 final goRouter = GoRouter(
   initialLocation: '/',
-  routes: [
+  routes:[
     ShellRoute(
       builder: (context, state, child) => MainShell(child: child),
-      routes: [
+      routes:[
         GoRoute(path: '/', builder: (context, state) => const TempScreen(title: AppStrings.homeTitle)),
         GoRoute(path: '/invoices', builder: (context, state) => const InvoicesListScreen()),
-        GoRoute(path: '/transfers', builder: (context, state) => const TempScreen(title: AppStrings.transfers)),
+
+        // 🔴 4. ربط مسار السندات بالشاشة الحقيقية
+        GoRoute(path: '/vouchers', builder: (context, state) => const VouchersListScreen()),
+
+        GoRoute(path: '/transfers', builder: (context, state) => const TransfersListScreen()),
         GoRoute(path: '/customers', builder: (context, state) => const CustomersListScreen()),
-        // ربط شاشة الإعدادات الحقيقية
         GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
       ],
     ),
-    // شاشة الإعدادات المحمية تكون خارج الـ Shell (تأخذ الشاشة كاملة بدون الشريط السفلي)
     GoRoute(
         path: '/protected_settings',
         builder: (context, state) => const ProtectedSettingsScreen()
     ),
-    // [جديد] مسار شاشة إدارة المستودعات
     GoRoute(
         path: '/manage_warehouses',
         builder: (context, state) => const WarehousesScreen()
@@ -96,7 +107,6 @@ final goRouter = GoRouter(
         path: '/manage_categories',
         builder: (context, state) => const CategoriesScreen()
     ),
-    // [جديد] مسار شاشة إضافة/تعديل المادة
     GoRoute(
       path: '/product_form/:categoryId/:productId',
       builder: (context, state) {
@@ -105,12 +115,10 @@ final goRouter = GoRouter(
         return ProductFormScreen(categoryId: categoryId, productId: productId);
       },
     ),
-    // [جديد] مسار إدارة الحسابات
     GoRoute(
       path: '/manage_accounts',
       builder: (context, state) => const AccountsScreen(),
     ),
-    // مسار إضافة وتعديل الزبون
     GoRoute(
       path: '/customer_form/:customerId',
       builder: (context, state) {
@@ -118,7 +126,6 @@ final goRouter = GoRouter(
         return CustomerFormScreen(customerId: customerId);
       },
     ),
-    // مسار الفاتورة (مبيعات أو مرتجعات)
     GoRoute(
       path: '/invoice_form/:type/:invoiceId',
       builder: (context, state) {
@@ -136,10 +143,10 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: AppStrings.appName,
+      title: AppStrings.appName ?? 'التطبيق',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      localizationsDelegates: const [
+      localizationsDelegates: const[
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,

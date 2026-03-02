@@ -162,6 +162,7 @@ class Transfers extends Table {
   TextColumn get date => text()(); // YYYY-MM-DD
   TextColumn get fromWarehouse => text().nullable()(); // المستودع المسلم
   TextColumn get toWarehouse => text().nullable()(); // المستودع المستلم
+  TextColumn get note => text().nullable()();
   RealColumn get totalQuantities => real().withDefault(const Constant(0))();
 }
 

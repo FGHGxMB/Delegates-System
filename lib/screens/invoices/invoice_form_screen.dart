@@ -53,6 +53,10 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   bool _isLoading = true;
   Invoice? _existingInvoice;
 
+  // متغيرات الحماية والميزات الجديدة
+  bool _canPopScope = false; // للتحكم بخروج المستخدم
+  bool _showRealItems = false; // لإظهار/إخفاء المواد الحقيقية
+
   String _status = 'DRAFT';
   DateTime _date = DateTime.now();
   String _paymentMethod = 'CASH';
@@ -64,7 +68,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   final _discountCtrl = TextEditingController(text: '0');
   final _customerSearchCtrl = TextEditingController();
 
-  List<InvoiceLineUI> _lines =[];
+  List<InvoiceLineUI> _lines = [];
   List<Customer> _allCustomers =[];
 
   @override
@@ -122,6 +126,10 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         }).toList();
       }
     }
+
+    // إذا كانت الفاتورة مرسلة، نسمح بالخروج المباشر بدون رسالة تأكيد
+    if (_status == 'SENT') _canPopScope = true;
+
     setState(() => _isLoading = false);
   }
 
@@ -148,7 +156,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       return;
     }
 
-    // 1. جلب إعداد "تحميل الأسعار تلقائياً" من قاعدة البيانات
     final settings = ref.read(settingsDaoProvider);
     final autoLoadStr = await settings.getValue('auto_load_prices') ?? '1';
     final bool autoLoadPrices = autoLoadStr == '1';
@@ -168,13 +175,11 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
           double retailSnap = 0.0;
           double wholesaleSnap = 0.0;
 
-          // 2. إذا كان الإعداد مفعلاً، نقوم بحساب السعر والتحويل
           if (autoLoadPrices) {
             price = unit == 1 ? p.unit1PriceRetail : unit == 2 ? p.unit2PriceRetail! : p.unit3PriceRetail!;
             retailSnap = price;
             wholesaleSnap = unit == 1 ? p.unit1PriceWholesale : unit == 2 ? p.unit2PriceWholesale! : p.unit3PriceWholesale!;
 
-            // التحويل الدقيق للأسعار حسب العملة
             if (_currency == 'SYP' && p.currency == 'USD') {
               price = price * _exchangeRate;
               retailSnap = retailSnap * _exchangeRate;
@@ -186,7 +191,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             }
           }
 
-          // 3. إضافة القلم للفاتورة (إذا كان الإعداد مطفأ سيكون السعر 0.0 تلقائياً)
           _lines.add(InvoiceLineUI(
             product: p,
             unitNumber: unit,
@@ -332,6 +336,41 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     );
   }
 
+  // دالة حذف الفاتورة من الداخل
+  void _confirmDeleteInvoice() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تحذير الحذف', style: TextStyle(color: Colors.red)),
+        content: const Text('هل أنت متأكد من حذف هذه الفاتورة نهائياً؟ لا يمكن التراجع عن هذا الإجراء.'),
+        actions:[
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx); // إغلاق نافذة التأكيد
+
+              final invDao = ref.read(invoicesDaoProvider);
+              await invDao.deleteInvoice(widget.invoiceId); // حذف من قاعدة البيانات
+
+              if (mounted) {
+                setState(() => _canPopScope = true); // السماح بالخروج
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('تم حذف الفاتورة بنجاح')),
+                );
+                context.pop(); // العودة للشاشة السابقة
+              }
+            },
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _saveInvoice({bool issue = false}) async {
     if (_lines.any((l) => !l.isGift && l.price <= 0)) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -389,6 +428,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     await invDao.saveInvoice(invoiceCompanion, linesCompanion);
 
     if (mounted) {
+      setState(() => _canPopScope = true); // السماح بالخروج بعد الحفظ بنجاح
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(issue ? 'تم تخريج الفاتورة بنجاح' : 'تم الحفظ بنجاح')));
       context.pop();
     }
@@ -398,271 +438,345 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.type == 'SALE' ? AppStrings.salesInvoice : AppStrings.returnInvoice, style: const TextStyle(fontSize: 16)),
-        backgroundColor: widget.type == 'SALE' ? AppColors.primary : Colors.orange[800],
-        actions:[
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Chip(
-                label: Text(_status == 'DRAFT' ? AppStrings.invoiceDraft : _status == 'ISSUED' ? AppStrings.invoiceIssued : AppStrings.invoiceSent, style: const TextStyle(color: Colors.white, fontSize: 10)),
-                backgroundColor: _status == 'DRAFT' ? AppColors.draftColor : _status == 'ISSUED' ? AppColors.issuedColor : AppColors.sentColor,
-                visualDensity: VisualDensity.compact,
+    // لف الواجهة بـ PopScope لحماية الفاتورة من الخروج العشوائي
+    return PopScope(
+      canPop: _canPopScope,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+
+        // إظهار رسالة التأكيد
+        final bool shouldPop = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('تأكيد الخروج', style: TextStyle(color: Colors.red)),
+            content: const Text('هل أنت متأكد من الخروج؟ سيتم فقدان أي تغييرات لم تقم بحفظها.'),
+            actions:[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('البقاء'),
               ),
-            ),
-          )
-        ],
-      ),
-      body: Column(
-        children:[
-          // ─── رأس الفاتورة الأنيق ───
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children:[
-                Row(
-                  children:[
-                    Expanded(
-                      child: InkWell(
-                        onTap: _selectDate,
-                        child: InputDecorator(
-                          decoration: const InputDecoration(labelText: 'التاريخ', isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
-                          child: Text('${_date.year}-${_date.month}-${_date.day}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('تأكيد الخروج'),
+              ),
+            ],
+          ),
+        ) ?? false;
+
+        if (shouldPop && mounted) {
+          setState(() => _canPopScope = true);
+          context.pop(); // الخروج الفعلي
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.type == 'SALE' ? AppStrings.salesInvoice : AppStrings.returnInvoice, style: const TextStyle(fontSize: 16)),
+          backgroundColor: widget.type == 'SALE' ? AppColors.primary : Colors.orange[800],
+          actions:[
+            // 1. زر إظهار/إخفاء المواد المخادعة
+            Builder(builder: (context) {
+              int fakeItemsCount = _lines.where((line) => line.realProduct != null).length;
+              if (fakeItemsCount > 0) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: Center(
+                    child: Badge(
+                      label: Text('$fakeItemsCount'),
+                      child: IconButton(
+                        icon: Icon(
+                          _showRealItems ? Icons.visibility : Icons.visibility_off,
+                          color: _showRealItems ? Colors.redAccent : Colors.white,
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _currency,
-                        decoration: const InputDecoration(labelText: 'العملة', isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
-                        items: const[DropdownMenuItem(value: 'SYP', child: Text('ل.س')), DropdownMenuItem(value: 'USD', child: Text('دولار \$'))],
-                        // تم إضافة شرط لتعطيل تغيير العملة إذا كان هناك زبون محدد
-                        onChanged: (_isReadOnly || _selectedCustomer != null) ? null : (val) {
+                        tooltip: 'إظهار/إخفاء المواد الحقيقية',
+                        onPressed: () {
                           setState(() {
-                            _currency = val!;
+                            _showRealItems = !_showRealItems;
                           });
                         },
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _paymentMethod,
-                        decoration: const InputDecoration(labelText: 'الدفع', isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
-                        items: const[DropdownMenuItem(value: 'CASH', child: Text('نقدي')), DropdownMenuItem(value: 'CREDIT', child: Text('آجل'))],
-                        onChanged: _isReadOnly ? null : (val) => setState(() => _paymentMethod = val!),
-                      ),
-                    ),
-                  ],
+                  ),
+                );
+              } else {
+                return const IconButton(
+                  icon: Icon(Icons.visibility_off, color: Colors.white38),
+                  onPressed: null,
+                  tooltip: 'لا يوجد أقلام مخادعة',
+                );
+              }
+            }),
+
+            // 2. زر الحذف (يظهر فقط إذا كانت محفوظة وليست مسودة جديدة وليست مرسلة)
+            if (widget.invoiceId != 0 && _status != 'SENT')
+              IconButton(
+                icon: const Icon(Icons.delete, color: Colors.white),
+                tooltip: 'حذف الفاتورة',
+                onPressed: _confirmDeleteInvoice,
+              ),
+
+            // 3. حالة الفاتورة (الـ Chip)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Chip(
+                  label: Text(_status == 'DRAFT' ? AppStrings.invoiceDraft : _status == 'ISSUED' ? AppStrings.invoiceIssued : AppStrings.invoiceSent, style: const TextStyle(color: Colors.white, fontSize: 10)),
+                  backgroundColor: _status == 'DRAFT' ? AppColors.draftColor : _status == 'ISSUED' ? AppColors.issuedColor : AppColors.sentColor,
+                  visualDensity: VisualDensity.compact,
                 ),
-                const SizedBox(height: 8),
-                RawAutocomplete<Customer>(
-                  textEditingController: _customerSearchCtrl,
-                  focusNode: FocusNode(),
-                  displayStringForOption: (c) => c.name,
-                  optionsBuilder: (TextEditingValue textEditingValue) {
-                    if (textEditingValue.text.isEmpty) return _allCustomers.where((c) => c.currency == _currency);
-                    return _allCustomers.where((c) => c.currency == _currency && c.name.contains(textEditingValue.text));
-                  },
-                  fieldViewBuilder: (context, ctrl, focusNode, onFieldSubmitted) {
-                    return TextField(
-                      controller: ctrl,
-                      focusNode: focusNode,
-                      enabled: !_isReadOnly,
-                      decoration: InputDecoration(
-                        labelText: 'الزبون (حسب عملة الفاتورة)',
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        // زر تفريغ حقل الزبون باللون الأحمر واضح للمندوب
-                        suffixIcon: _selectedCustomer != null && !_isReadOnly
-                            ? IconButton(icon: const Icon(Icons.clear, size: 20, color: Colors.red), onPressed: () {
-                          setState(() {
-                            _selectedCustomer = null;
-                            _customerSearchCtrl.clear();
-                          });
-                        })
-                            : null,
-                      ),
-                    );
-                  },
-                  optionsViewBuilder: (context, onSelected, options) {
-                    return Align(
-                      alignment: Alignment.topLeft,
-                      child: Material(
-                        elevation: 4,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 200),
-                          child: ListView(
-                            padding: EdgeInsets.zero, shrinkWrap: true,
-                            children: options.map((Customer c) => ListTile(title: Text(c.name), onTap: () { setState(() { _selectedCustomer = c; _customerSearchCtrl.text = c.name; }); onSelected(c); })).toList(),
+              ),
+            )
+          ],
+        ),
+        body: Column(
+          children:[
+            // ─── رأس الفاتورة الأنيق ───
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                children:[
+                  Row(
+                    children:[
+                      Expanded(
+                        child: InkWell(
+                          onTap: _selectDate,
+                          child: InputDecorator(
+                            decoration: const InputDecoration(labelText: 'التاريخ', isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
+                            child: Text('${_date.year}-${_date.month}-${_date.day}', style: const TextStyle(fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          // ─── جدول المواد ───
-          Container(
-            color: Colors.grey[200],
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-            child: const Row(
-              children:[
-                SizedBox(width: 24), // مساحة السحب
-                Expanded(flex: 3, child: Text('المادة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                Expanded(flex: 1, child: Text('الكمية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
-                Expanded(flex: 2, child: Text('الوحدة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
-                Expanded(flex: 2, child: Text('الإفرادي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
-                Expanded(flex: 2, child: Text('الإجمالي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
-              ],
-            ),
-          ),
-
-          Expanded(
-            child: _lines.isEmpty
-                ? const Center(child: Text('لم يتم إضافة مواد', style: TextStyle(color: Colors.grey)))
-                : ReorderableListView.builder(
-              itemCount: _lines.length,
-              onReorder: (oldIndex, newIndex) {
-                setState(() {
-                  if (newIndex > oldIndex) newIndex -= 1;
-                  final item = _lines.removeAt(oldIndex);
-                  _lines.insert(newIndex, item);
-                });
-              },
-              itemBuilder: (context, index) {
-                final line = _lines[index];
-                return Container(
-                  key: ValueKey('${line.product.id}_$index'),
-                  color: line.isGift ? AppColors.giftBackground : (line.realProduct != null ? Colors.purple[50] : Colors.white),
-                  child: Column(
-                    children: [
-                      Row(
-                        children:[
-                          ReorderableDragStartListener(
-                            index: index,
-                            child: const Padding(padding: EdgeInsets.all(4.0), child: Icon(Icons.drag_indicator, size: 18, color: Colors.grey)),
-                          ),
-                          Expanded(flex: 3, child: InkWell(
-                            onLongPress: () => _showLineOptions(index),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children:[
-                                Text(line.product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
-                                if (line.realProduct != null) Text('👁️ ${line.realProduct!.name}', style: const TextStyle(color: Colors.purple, fontSize: 10)),
-                                if (line.isGift) const Text('🎁 هدية', style: TextStyle(color: Colors.pink, fontSize: 10)),
-                              ],
-                            ),
-                          )),
-                          Expanded(flex: 1, child: InkWell(
-                            onTap: () => _editNumericCell(line, 'QTY'),
-                            child: Container(padding: const EdgeInsets.all(8), alignment: Alignment.center, child: Text(CurrencyUtils.format(line.quantity), style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12))),
-                          )),
-                          Expanded(flex: 2, child: InkWell(
-                            onTap: () => _editUnit(line),
-                            child: Container(padding: const EdgeInsets.all(8), alignment: Alignment.center, child: Text(line.unitName, style: const TextStyle(color: Colors.blue, fontSize: 12), overflow: TextOverflow.ellipsis)),
-                          )),
-                          Expanded(flex: 2, child: InkWell(
-                            onTap: line.isGift ? null : () => _editNumericCell(line, 'PRICE'),
-                            child: Container(padding: const EdgeInsets.all(8), alignment: Alignment.center,
-                                child: Text(line.isGift ? '---' : CurrencyUtils.format(line.price), style: TextStyle(color: line.isGift ? Colors.grey : Colors.blue, fontSize: 12), overflow: TextOverflow.ellipsis)),
-                          )),
-                          Expanded(flex: 2, child: InkWell(
-                            onTap: line.isGift ? null : () => _editNumericCell(line, 'TOTAL'),
-                            child: Container(padding: const EdgeInsets.all(8), alignment: Alignment.center,
-                                child: Text(line.isGift ? '---' : CurrencyUtils.format(line.total), style: TextStyle(color: line.isGift ? Colors.grey : Colors.green, fontWeight: FontWeight.bold, fontSize: 12), overflow: TextOverflow.ellipsis)),
-                          )),
-                        ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _currency,
+                          decoration: const InputDecoration(labelText: 'العملة', isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
+                          items: const[DropdownMenuItem(value: 'SYP', child: Text('ل.س')), DropdownMenuItem(value: 'USD', child: Text('دولار \$'))],
+                          onChanged: (_isReadOnly || _selectedCustomer != null) ? null : (val) {
+                            setState(() {
+                              _currency = val!;
+                            });
+                          },
+                        ),
                       ),
-                      const Divider(height: 1),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _paymentMethod,
+                          decoration: const InputDecoration(labelText: 'الدفع', isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
+                          items: const[DropdownMenuItem(value: 'CASH', child: Text('نقدي')), DropdownMenuItem(value: 'CREDIT', child: Text('آجل'))],
+                          onChanged: _isReadOnly ? null : (val) => setState(() => _paymentMethod = val!),
+                        ),
+                      ),
                     ],
                   ),
-                );
-              },
-            ),
-          ),
-
-          if (!_isReadOnly)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: OutlinedButton.icon(
-                onPressed: _addProducts,
-                icon: const Icon(Icons.add),
-                label: const Text('إضافة مواد للفاتورة'),
-                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(40)),
-              ),
-            ),
-
-          // ─── الإجماليات ───
-          Container(
-            color: Colors.blue[50],
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children:[
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children:[const Text('المجموع الفرعي:'), Text('${CurrencyUtils.format(_subtotal)} $_currency')]),
-                Row(
-                  children:[
-                    const Text('الحسم:'),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextField(
-                        controller: _discountCtrl,
-                        keyboardType: TextInputType.number,
+                  const SizedBox(height: 8),
+                  RawAutocomplete<Customer>(
+                    textEditingController: _customerSearchCtrl,
+                    focusNode: FocusNode(),
+                    displayStringForOption: (c) => c.name,
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      if (textEditingValue.text.isEmpty) return _allCustomers.where((c) => c.currency == _currency);
+                      return _allCustomers.where((c) => c.currency == _currency && c.name.contains(textEditingValue.text));
+                    },
+                    fieldViewBuilder: (context, ctrl, focusNode, onFieldSubmitted) {
+                      return TextField(
+                        controller: ctrl,
+                        focusNode: focusNode,
                         enabled: !_isReadOnly,
-                        textAlign: TextAlign.end,
-                        decoration: const InputDecoration(isDense: true, border: InputBorder.none),
-                        onChanged: (v) => setState(() {}),
-                      ),
-                    ),
-                    Text(' $_currency'),
-                  ],
-                ),
-                const Divider(height: 8),
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children:[
-                      const Text('الصافي النهائي:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text('${CurrencyUtils.format(_netTotal)} $_currency', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary))
-                    ]
-                ),
-              ],
-            ),
-          ),
-
-          // ─── أزرار الحفظ (تظهر للمسودة والمخرجة) ───
-          if (!_isReadOnly)
-            Container(
-              padding: const EdgeInsets.all(8),
-              color: Colors.white,
-              child: Row(
-                children:[
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _saveInvoice(issue: false),
-                      child: Text(_status == 'ISSUED' ? 'تعديل وحفظ كمُخرجة' : 'حفظ مسودة'),
-                    ),
+                        decoration: InputDecoration(
+                          labelText: 'الزبون (حسب عملة الفاتورة)',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          suffixIcon: _selectedCustomer != null && !_isReadOnly
+                              ? IconButton(icon: const Icon(Icons.clear, size: 20, color: Colors.red), onPressed: () {
+                            setState(() {
+                              _selectedCustomer = null;
+                              _customerSearchCtrl.clear();
+                            });
+                          })
+                              : null,
+                        ),
+                      );
+                    },
+                    optionsViewBuilder: (context, onSelected, options) {
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 4,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 200),
+                            child: ListView(
+                              padding: EdgeInsets.zero, shrinkWrap: true,
+                              children: options.map((Customer c) => ListTile(title: Text(c.name), onTap: () { setState(() { _selectedCustomer = c; _customerSearchCtrl.text = c.name; }); onSelected(c); })).toList(),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  if (_status == 'DRAFT') ...[
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(backgroundColor: AppColors.success),
-                        onPressed: () => _saveInvoice(issue: true),
-                        child: const Text('تخريج الفاتورة'),
-                      ),
-                    ),
-                  ]
                 ],
               ),
             ),
-        ],
+
+            // ─── جدول المواد ───
+            Container(
+              color: Colors.grey[200],
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: const Row(
+                children:[
+                  SizedBox(width: 24), // مساحة السحب
+                  Expanded(flex: 3, child: Text('المادة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                  Expanded(flex: 1, child: Text('الكمية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                  Expanded(flex: 2, child: Text('الوحدة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                  Expanded(flex: 2, child: Text('الإفرادي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                  Expanded(flex: 2, child: Text('الإجمالي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: _lines.isEmpty
+                  ? const Center(child: Text('لم يتم إضافة مواد', style: TextStyle(color: Colors.grey)))
+                  : ReorderableListView.builder(
+                itemCount: _lines.length,
+                onReorder: (oldIndex, newIndex) {
+                  setState(() {
+                    if (newIndex > oldIndex) newIndex -= 1;
+                    final item = _lines.removeAt(oldIndex);
+                    _lines.insert(newIndex, item);
+                  });
+                },
+                itemBuilder: (context, index) {
+                  final line = _lines[index];
+                  return Container(
+                    key: ValueKey('${line.product.id}_$index'),
+                    color: line.isGift ? AppColors.giftBackground : (line.realProduct != null ? Colors.purple[50] : Colors.white),
+                    child: Column(
+                      children:[
+                        Row(
+                          children:[
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: const Padding(padding: EdgeInsets.all(4.0), child: Icon(Icons.drag_indicator, size: 18, color: Colors.grey)),
+                            ),
+                            Expanded(flex: 3, child: InkWell(
+                              onLongPress: () => _showLineOptions(index),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children:[
+                                  Text(line.product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
+                                  // التعديل هنا: المادة الحقيقية لا تظهر إلا إذا كان زر العين مفعلاً
+                                  if (_showRealItems && line.realProduct != null)
+                                    Text('👁️ ${line.realProduct!.name}', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 11)),
+                                  if (line.isGift) const Text('🎁 هدية', style: TextStyle(color: Colors.pink, fontSize: 10)),
+                                ],
+                              ),
+                            )),
+                            Expanded(flex: 1, child: InkWell(
+                              onTap: () => _editNumericCell(line, 'QTY'),
+                              child: Container(padding: const EdgeInsets.all(8), alignment: Alignment.center, child: Text(CurrencyUtils.format(line.quantity), style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12))),
+                            )),
+                            Expanded(flex: 2, child: InkWell(
+                              onTap: () => _editUnit(line),
+                              child: Container(padding: const EdgeInsets.all(8), alignment: Alignment.center, child: Text(line.unitName, style: const TextStyle(color: Colors.blue, fontSize: 12), overflow: TextOverflow.ellipsis)),
+                            )),
+                            Expanded(flex: 2, child: InkWell(
+                              onTap: line.isGift ? null : () => _editNumericCell(line, 'PRICE'),
+                              child: Container(padding: const EdgeInsets.all(8), alignment: Alignment.center,
+                                  child: Text(line.isGift ? '---' : CurrencyUtils.format(line.price), style: TextStyle(color: line.isGift ? Colors.grey : Colors.blue, fontSize: 12), overflow: TextOverflow.ellipsis)),
+                            )),
+                            Expanded(flex: 2, child: InkWell(
+                              onTap: line.isGift ? null : () => _editNumericCell(line, 'TOTAL'),
+                              child: Container(padding: const EdgeInsets.all(8), alignment: Alignment.center,
+                                  child: Text(line.isGift ? '---' : CurrencyUtils.format(line.total), style: TextStyle(color: line.isGift ? Colors.grey : Colors.green, fontWeight: FontWeight.bold, fontSize: 12), overflow: TextOverflow.ellipsis)),
+                            )),
+                          ],
+                        ),
+                        const Divider(height: 1),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            if (!_isReadOnly)
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: OutlinedButton.icon(
+                  onPressed: _addProducts,
+                  icon: const Icon(Icons.add),
+                  label: const Text('إضافة مواد للفاتورة'),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(40)),
+                ),
+              ),
+
+            // ─── الإجماليات ───
+            Container(
+              color: Colors.blue[50],
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children:[const Text('المجموع الفرعي:'), Text('${CurrencyUtils.format(_subtotal)} $_currency')]),
+                  Row(
+                    children:[
+                      const Text('الحسم:'),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: _discountCtrl,
+                          keyboardType: TextInputType.number,
+                          enabled: !_isReadOnly,
+                          textAlign: TextAlign.end,
+                          decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+                          onChanged: (v) => setState(() {}),
+                        ),
+                      ),
+                      Text(' $_currency'),
+                    ],
+                  ),
+                  const Divider(height: 8),
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children:[
+                        const Text('الصافي النهائي:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text('${CurrencyUtils.format(_netTotal)} $_currency', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary))
+                      ]
+                  ),
+                ],
+              ),
+            ),
+
+            // ─── أزرار الحفظ (تظهر للمسودة والمخرجة) ───
+            if (!_isReadOnly)
+              Container(
+                padding: const EdgeInsets.all(8),
+                color: Colors.white,
+                child: Row(
+                  children:[
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _saveInvoice(issue: false),
+                        child: Text(_status == 'ISSUED' ? 'تعديل وحفظ كمُخرجة' : 'حفظ مسودة'),
+                      ),
+                    ),
+                    if (_status == 'DRAFT') ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(backgroundColor: AppColors.success),
+                          onPressed: () => _saveInvoice(issue: true),
+                          child: const Text('تخريج الفاتورة'),
+                        ),
+                      ),
+                    ]
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

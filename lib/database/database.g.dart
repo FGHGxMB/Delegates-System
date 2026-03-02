@@ -5443,6 +5443,11 @@ class $TransfersTable extends Transfers
   late final GeneratedColumn<String> toWarehouse = GeneratedColumn<String>(
       'to_warehouse', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _totalQuantitiesMeta =
       const VerificationMeta('totalQuantities');
   @override
@@ -5460,6 +5465,7 @@ class $TransfersTable extends Transfers
         date,
         fromWarehouse,
         toWarehouse,
+        note,
         totalQuantities
       ];
   @override
@@ -5513,6 +5519,10 @@ class $TransfersTable extends Transfers
           toWarehouse.isAcceptableOrUnknown(
               data['to_warehouse']!, _toWarehouseMeta));
     }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
     if (data.containsKey('total_quantities')) {
       context.handle(
           _totalQuantitiesMeta,
@@ -5542,6 +5552,8 @@ class $TransfersTable extends Transfers
           .read(DriftSqlType.string, data['${effectivePrefix}from_warehouse']),
       toWarehouse: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}to_warehouse']),
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note']),
       totalQuantities: attachedDatabase.typeMapping.read(
           DriftSqlType.double, data['${effectivePrefix}total_quantities'])!,
     );
@@ -5561,6 +5573,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
   final String date;
   final String? fromWarehouse;
   final String? toWarehouse;
+  final String? note;
   final double totalQuantities;
   const Transfer(
       {required this.id,
@@ -5570,6 +5583,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
       required this.date,
       this.fromWarehouse,
       this.toWarehouse,
+      this.note,
       required this.totalQuantities});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5584,6 +5598,9 @@ class Transfer extends DataClass implements Insertable<Transfer> {
     }
     if (!nullToAbsent || toWarehouse != null) {
       map['to_warehouse'] = Variable<String>(toWarehouse);
+    }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
     }
     map['total_quantities'] = Variable<double>(totalQuantities);
     return map;
@@ -5602,6 +5619,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
       toWarehouse: toWarehouse == null && nullToAbsent
           ? const Value.absent()
           : Value(toWarehouse),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
       totalQuantities: Value(totalQuantities),
     );
   }
@@ -5617,6 +5635,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
       date: serializer.fromJson<String>(json['date']),
       fromWarehouse: serializer.fromJson<String?>(json['fromWarehouse']),
       toWarehouse: serializer.fromJson<String?>(json['toWarehouse']),
+      note: serializer.fromJson<String?>(json['note']),
       totalQuantities: serializer.fromJson<double>(json['totalQuantities']),
     );
   }
@@ -5631,6 +5650,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
       'date': serializer.toJson<String>(date),
       'fromWarehouse': serializer.toJson<String?>(fromWarehouse),
       'toWarehouse': serializer.toJson<String?>(toWarehouse),
+      'note': serializer.toJson<String?>(note),
       'totalQuantities': serializer.toJson<double>(totalQuantities),
     };
   }
@@ -5643,6 +5663,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
           String? date,
           Value<String?> fromWarehouse = const Value.absent(),
           Value<String?> toWarehouse = const Value.absent(),
+          Value<String?> note = const Value.absent(),
           double? totalQuantities}) =>
       Transfer(
         id: id ?? this.id,
@@ -5653,6 +5674,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
         fromWarehouse:
             fromWarehouse.present ? fromWarehouse.value : this.fromWarehouse,
         toWarehouse: toWarehouse.present ? toWarehouse.value : this.toWarehouse,
+        note: note.present ? note.value : this.note,
         totalQuantities: totalQuantities ?? this.totalQuantities,
       );
   Transfer copyWithCompanion(TransfersCompanion data) {
@@ -5669,6 +5691,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
           : this.fromWarehouse,
       toWarehouse:
           data.toWarehouse.present ? data.toWarehouse.value : this.toWarehouse,
+      note: data.note.present ? data.note.value : this.note,
       totalQuantities: data.totalQuantities.present
           ? data.totalQuantities.value
           : this.totalQuantities,
@@ -5685,6 +5708,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
           ..write('date: $date, ')
           ..write('fromWarehouse: $fromWarehouse, ')
           ..write('toWarehouse: $toWarehouse, ')
+          ..write('note: $note, ')
           ..write('totalQuantities: $totalQuantities')
           ..write(')'))
         .toString();
@@ -5692,7 +5716,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
 
   @override
   int get hashCode => Object.hash(id, transferNumber, name, status, date,
-      fromWarehouse, toWarehouse, totalQuantities);
+      fromWarehouse, toWarehouse, note, totalQuantities);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5704,6 +5728,7 @@ class Transfer extends DataClass implements Insertable<Transfer> {
           other.date == this.date &&
           other.fromWarehouse == this.fromWarehouse &&
           other.toWarehouse == this.toWarehouse &&
+          other.note == this.note &&
           other.totalQuantities == this.totalQuantities);
 }
 
@@ -5715,6 +5740,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
   final Value<String> date;
   final Value<String?> fromWarehouse;
   final Value<String?> toWarehouse;
+  final Value<String?> note;
   final Value<double> totalQuantities;
   const TransfersCompanion({
     this.id = const Value.absent(),
@@ -5724,6 +5750,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
     this.date = const Value.absent(),
     this.fromWarehouse = const Value.absent(),
     this.toWarehouse = const Value.absent(),
+    this.note = const Value.absent(),
     this.totalQuantities = const Value.absent(),
   });
   TransfersCompanion.insert({
@@ -5734,6 +5761,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
     required String date,
     this.fromWarehouse = const Value.absent(),
     this.toWarehouse = const Value.absent(),
+    this.note = const Value.absent(),
     this.totalQuantities = const Value.absent(),
   })  : transferNumber = Value(transferNumber),
         name = Value(name),
@@ -5747,6 +5775,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
     Expression<String>? date,
     Expression<String>? fromWarehouse,
     Expression<String>? toWarehouse,
+    Expression<String>? note,
     Expression<double>? totalQuantities,
   }) {
     return RawValuesInsertable({
@@ -5757,6 +5786,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
       if (date != null) 'date': date,
       if (fromWarehouse != null) 'from_warehouse': fromWarehouse,
       if (toWarehouse != null) 'to_warehouse': toWarehouse,
+      if (note != null) 'note': note,
       if (totalQuantities != null) 'total_quantities': totalQuantities,
     });
   }
@@ -5769,6 +5799,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
       Value<String>? date,
       Value<String?>? fromWarehouse,
       Value<String?>? toWarehouse,
+      Value<String?>? note,
       Value<double>? totalQuantities}) {
     return TransfersCompanion(
       id: id ?? this.id,
@@ -5778,6 +5809,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
       date: date ?? this.date,
       fromWarehouse: fromWarehouse ?? this.fromWarehouse,
       toWarehouse: toWarehouse ?? this.toWarehouse,
+      note: note ?? this.note,
       totalQuantities: totalQuantities ?? this.totalQuantities,
     );
   }
@@ -5806,6 +5838,9 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
     if (toWarehouse.present) {
       map['to_warehouse'] = Variable<String>(toWarehouse.value);
     }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
     if (totalQuantities.present) {
       map['total_quantities'] = Variable<double>(totalQuantities.value);
     }
@@ -5822,6 +5857,7 @@ class TransfersCompanion extends UpdateCompanion<Transfer> {
           ..write('date: $date, ')
           ..write('fromWarehouse: $fromWarehouse, ')
           ..write('toWarehouse: $toWarehouse, ')
+          ..write('note: $note, ')
           ..write('totalQuantities: $totalQuantities')
           ..write(')'))
         .toString();
@@ -8600,6 +8636,7 @@ typedef $$TransfersTableCreateCompanionBuilder = TransfersCompanion Function({
   required String date,
   Value<String?> fromWarehouse,
   Value<String?> toWarehouse,
+  Value<String?> note,
   Value<double> totalQuantities,
 });
 typedef $$TransfersTableUpdateCompanionBuilder = TransfersCompanion Function({
@@ -8610,6 +8647,7 @@ typedef $$TransfersTableUpdateCompanionBuilder = TransfersCompanion Function({
   Value<String> date,
   Value<String?> fromWarehouse,
   Value<String?> toWarehouse,
+  Value<String?> note,
   Value<double> totalQuantities,
 });
 
@@ -8637,6 +8675,7 @@ class $$TransfersTableTableManager extends RootTableManager<
             Value<String> date = const Value.absent(),
             Value<String?> fromWarehouse = const Value.absent(),
             Value<String?> toWarehouse = const Value.absent(),
+            Value<String?> note = const Value.absent(),
             Value<double> totalQuantities = const Value.absent(),
           }) =>
               TransfersCompanion(
@@ -8647,6 +8686,7 @@ class $$TransfersTableTableManager extends RootTableManager<
             date: date,
             fromWarehouse: fromWarehouse,
             toWarehouse: toWarehouse,
+            note: note,
             totalQuantities: totalQuantities,
           ),
           createCompanionCallback: ({
@@ -8657,6 +8697,7 @@ class $$TransfersTableTableManager extends RootTableManager<
             required String date,
             Value<String?> fromWarehouse = const Value.absent(),
             Value<String?> toWarehouse = const Value.absent(),
+            Value<String?> note = const Value.absent(),
             Value<double> totalQuantities = const Value.absent(),
           }) =>
               TransfersCompanion.insert(
@@ -8667,6 +8708,7 @@ class $$TransfersTableTableManager extends RootTableManager<
             date: date,
             fromWarehouse: fromWarehouse,
             toWarehouse: toWarehouse,
+            note: note,
             totalQuantities: totalQuantities,
           ),
         ));
@@ -8707,6 +8749,11 @@ class $$TransfersTableFilterComposer
 
   ColumnFilters<String> get toWarehouse => $state.composableBuilder(
       column: $state.table.toWarehouse,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get note => $state.composableBuilder(
+      column: $state.table.note,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -8764,6 +8811,11 @@ class $$TransfersTableOrderingComposer
 
   ColumnOrderings<String> get toWarehouse => $state.composableBuilder(
       column: $state.table.toWarehouse,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get note => $state.composableBuilder(
+      column: $state.table.note,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
