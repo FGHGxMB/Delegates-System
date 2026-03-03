@@ -72,13 +72,13 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
     _cashAccountUsd = await settings.getValue('cash_account_usd') ?? '';
     _mainCustomerPrefix = await settings.getValue('main_account_prefix') ?? '12101';
 
-    // 2. بناء قائمة ذكية تجمع (الزبائن + الحسابات)
+    // 2. بناء قائ.مة ذكية تجمع (الزبائن + الحسابات)
     final customers = await db.select(db.customers).get();
     final accounts = await db.select(db.accounts).get();
 
     _allCounterparts =[
       ...customers.map((c) => CounterpartItem(
-          code: '$_mainCustomerPrefix${c.accountCode}',
+          code: c.accountCode,
           name: c.name,
           currency: c.currency,
           isCustomer: true)),
