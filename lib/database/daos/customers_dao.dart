@@ -66,10 +66,24 @@ class CustomersDao {
     }
   }
 
-  // ─── [جديد] حماية الحذف ───
+  // ───[معدل] حماية الحذف (فواتير + سندات) ───
   Future<bool> deleteCustomer(int id) async {
+    // 1. التحقق من وجود فواتير
     final invoicesCount = await (db.select(db.invoices)..where((t) => t.customerId.equals(id))).get();
     if (invoicesCount.isNotEmpty) return false; // ممنوع الحذف لوجود فواتير
+
+    // 2. جلب الزبون لمعرفة رمز حسابه
+    final customer = await (db.select(db.customers)..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (customer == null) return false; // الزبون غير موجود أصلاً
+
+    // 3. التحقق من وجود سندات (كطرف مدين أو دائن)
+    final vouchersCount = await (db.select(db.vouchers)..where((t) =>
+    t.debitAccount.equals(customer.accountCode) |
+    t.creditAccount.equals(customer.accountCode)
+    )).get();
+    if (vouchersCount.isNotEmpty) return false; // ممنوع الحذف لوجود سندات مالية
+
+    // 4. الحذف بأمان
     await (db.delete(db.customers)..where((t) => t.id.equals(id))).go();
     return true;
   }
@@ -83,8 +97,105 @@ class CustomersDao {
       ),
     );
   }
+
+  // ─── جرد رصيد الزبون التفصيلي ───
+  Future<Map<String, double>> getCustomerBalanceInfo(int customerId, String accountCode) async {
+    double totalCreditSales = 0;
+    double totalCreditReturns = 0;
+    double totalReceipts = 0;
+    double totalPayments = 0;
+
+    // 1. المبيعات الآجلة (تزيد الرصيد)
+    final sales = await (db.select(db.invoices)
+      ..where((i) => i.customerId.equals(customerId) & i.paymentMethod.equals('CREDIT') & i.type.equals('SALE') & i.status.isNotIn(['DRAFT']))
+    ).get();
+    for (var inv in sales) { totalCreditSales += inv.total; }
+
+    // 2. المرتجعات الآجلة (تنقص الرصيد)
+    final returns = await (db.select(db.invoices)
+      ..where((i) => i.customerId.equals(customerId) & i.paymentMethod.equals('CREDIT') & i.type.equals('RETURN') & i.status.isNotIn(['DRAFT']))
+    ).get();
+    for (var inv in returns) { totalCreditReturns += inv.total; }
+
+    // 3. الدفعات المستلمة (سندات القبض - تنقص الرصيد)
+    // الزبون هنا يكون "دائن" لأنه أعطانا المال
+    final receipts = await (db.select(db.vouchers)
+      ..where((v) => v.creditAccount.equals(accountCode) & v.type.equals('RECEIPT') & v.status.isNotIn(['DRAFT']))
+    ).get();
+    for (var v in receipts) { totalReceipts += v.amount; }
+
+    // 4. الدفعات المعطاة (سندات الدفع - تزيد الرصيد)
+    // الزبون هنا يكون "مدين" لأنه أخذ منا مال
+    final payments = await (db.select(db.vouchers)
+      ..where((v) => v.debitAccount.equals(accountCode) & v.type.equals('PAYMENT') & v.status.isNotIn(['DRAFT']))
+    ).get();
+    for (var v in payments) { totalPayments += v.amount; }
+
+    // الرصيد النهائي = (المبيعات + سندات الدفع) - (المرتجعات + سندات القبض)
+    double netBalance = (totalCreditSales + totalPayments) - (totalCreditReturns + totalReceipts);
+
+    return {
+      'totalCreditSales': totalCreditSales,
+      'totalCreditReturns': totalCreditReturns,
+      'totalReceipts': totalReceipts,
+      'totalPayments': totalPayments,
+      'netBalance': netBalance,
+    };
+  }
+
+  // ─── للحصول على الرصيد النهائي فقط (للاستخدام السريع في القوائم) ───
+  Future<double> getCustomerNetBalance(int customerId, String accountCode) async {
+    final info = await getCustomerBalanceInfo(customerId, accountCode);
+    return info['netBalance']!;
+  }
+
+  // ─── جلب الزبائن مع أرصدتهم كمجرى بيانات (Stream) يتحدث لحظياً ───
+  Stream<List<CustomerWithBalance>> watchCustomersWithBalances(String searchQuery) {
+    final searchTerm = '%${searchQuery.trim()}%';
+
+    final query = '''
+      SELECT c.*, 
+      (
+        -- 1. المبيعات الآجلة (تزيد ديون الزبون)
+        COALESCE((SELECT SUM(total) FROM invoices WHERE customer_id = c.id AND payment_method = 'CREDIT' AND type = 'SALE' AND status != 'DRAFT'), 0)
+        + 
+        -- 2. 🔴 التعديل هنا: أي سند يكون الزبون فيه مديناً (تزيد ديون الزبون)
+        COALESCE((SELECT SUM(amount) FROM vouchers WHERE debit_account = c.account_code AND status != 'DRAFT'), 0)
+        - 
+        -- 3. المرتجعات الآجلة (تنقص ديون الزبون)
+        COALESCE((SELECT SUM(total) FROM invoices WHERE customer_id = c.id AND payment_method = 'CREDIT' AND type = 'RETURN' AND status != 'DRAFT'), 0)
+        - 
+        -- 4. 🔴 التعديل هنا: أي سند يكون الزبون فيه دائناً (تنقص ديون الزبون لأنه دفع لنا)
+        COALESCE((SELECT SUM(amount) FROM vouchers WHERE credit_account = c.account_code AND status != 'DRAFT'), 0)
+      ) AS net_balance
+      FROM customers c
+      WHERE c.name LIKE ? OR c.account_code LIKE ?
+      ORDER BY c.name ASC;
+    ''';
+
+    return db.customSelect(
+      query,
+      variables:[Variable.withString(searchTerm), Variable.withString(searchTerm)],
+      readsFrom: {db.customers, db.invoices, db.vouchers},
+    ).watch().map((rows) {
+      return rows.map((row) {
+        return CustomerWithBalance(
+          customer: db.customers.map(row.data),
+          netBalance: row.read<double>('net_balance'),
+        );
+      }).toList();
+    });
+  }
 }
 
 final customersDaoProvider = Provider<CustomersDao>((ref) {
   return CustomersDao(ref.watch(databaseProvider));
 });
+
+// ─── كلاس مساعد لربط الزبون برصيده ───
+class CustomerWithBalance {
+  final Customer customer;
+  final double netBalance;
+
+  CustomerWithBalance({required this.customer, required this.netBalance});
+}

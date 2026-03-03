@@ -173,8 +173,19 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                         ButtonSegment(value: 'USD', label: Text('دولار \$')),
                       ],
                       selected: {_currency},
-                      onSelectionChanged: (set) => setState(() => _currency = set.first),
+                      onSelectionChanged: widget.customerId == 0
+                          ? (set) => setState(() => _currency = set.first)
+                          : null,
                     ),
+                    // 🔴 رسالة توضيحية تظهر للمندوب في حالة التعديل فقط
+                    if (widget.customerId != 0)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          'لا يمكن تغيير عملة الزبون بعد إنشاء بطاقته',
+                          style: TextStyle(color: Colors.red, fontSize: 12),
+                        ),
+                      ),
                   ],
                 ),
               ),

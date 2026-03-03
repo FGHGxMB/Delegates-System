@@ -74,6 +74,7 @@ class InvoicesDao {
       // إدراج الأقلام الجديدة
       for (int i = 0; i < lines.length; i++) {
         final lineWithInvoiceId = lines[i].copyWith(
+          id: const Value.absent(), // 🔴 الحل السحري هنا: تفريغ الـ ID ليقوم النظام بتوليد ID جديد بعد الحذف
           invoiceId: Value(invoiceId),
           lineOrder: Value(i),
         );

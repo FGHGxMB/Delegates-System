@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../config/app_strings.dart';
 import '../../config/app_colors.dart';
 import '../../database/daos/customers_dao.dart';
-import '../../database/database.dart';
+import '../../database/database.dart'; // تأكد أن CustomerWithBalance موجود ضمن الـ Imports إذا كان في ملف منفصل أو مع الـ DAO
 
 class CustomersListScreen extends ConsumerStatefulWidget {
   const CustomersListScreen({Key? key}) : super(key: key);
@@ -56,26 +56,35 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/customer_form/0'), // 0 تعني زبون جديد
+        onPressed: () => context.push('/customer_form/0'),
         child: const Icon(Icons.person_add),
       ),
-      body: StreamBuilder<List<Customer>>(
-        stream: dao.watchCustomers(_searchQuery),
+      // 🔴 هنا غيرنا النوع إلى CustomerWithBalance
+      body: StreamBuilder<List<CustomerWithBalance>>(
+        // 🔴 وهنا استدعينا الدالة الجديدة
+        stream: dao.watchCustomersWithBalances(_searchQuery),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          final customers = snapshot.data ??[];
+          final items = snapshot.data ??[];
 
-          if (customers.isEmpty) {
+          if (items.isEmpty) {
             return Center(child: Text(_searchQuery.isEmpty ? AppStrings.noData : 'لا توجد نتائج للبحث'));
           }
 
           return ListView.builder(
             padding: const EdgeInsets.all(8),
-            itemCount: customers.length,
+            itemCount: items.length,
             itemBuilder: (context, index) {
-              final customer = customers[index];
+              final item = items[index];
+              final customer = item.customer;
+              final balance = item.netBalance;
+
+              // تحديد لون الرصيد بناءً على القيمة
+              // الرصيد الموجب (لنا معه/مديون) أحمر ، الرصيد السالب أو صفر (حسابه نظيف) أخضر
+              final balanceColor = balance > 0 ? Colors.red.shade700 : Colors.green.shade700;
+
               return Card(
                 elevation: 2,
                 child: ListTile(
@@ -84,14 +93,34 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
                     child: Text(customer.name.substring(0, 1), style: const TextStyle(color: Colors.white)),
                   ),
                   title: Text(customer.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('${customer.accountCode} | ${customer.currency} | ${customer.city ?? ""}'),
+                  subtitle: Text('${customer.accountCode} | ${customer.city ?? ""}'),
+
+                  // 🔴 عرض الرصيد بطريقة منسقة
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children:[
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children:[
+                          const Text('الرصيد', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          Text(
+                            '${balance.abs().toStringAsFixed(1)} ${customer.currency}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: balanceColor,
+                            ),
+                            textDirection: TextDirection.ltr, // لضمان عرض الرمز بجانب الرقم بشكل صحيح
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 8),
+                      // زر التعديل
                       IconButton(
                         icon: const Icon(Icons.edit, color: AppColors.primary),
                         onPressed: () => context.push('/customer_form/${customer.id}'),
                       ),
+                      // زر الحذف
                       IconButton(
                         icon: const Icon(Icons.delete_outline, color: AppColors.error),
                         onPressed: () async {
@@ -110,7 +139,14 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
                                 ],
                               )
                           );
-                          if (confirm == true) await dao.deleteCustomer(customer.id);
+                          if (confirm == true) {
+                            final success = await dao.deleteCustomer(customer.id);
+                            if (!success && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('لا يمكن الحذف لوجود فواتير أو سندات مرتبطة!'), backgroundColor: Colors.red)
+                              );
+                            }
+                          }
                         },
                       ),
                     ],
