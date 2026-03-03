@@ -13,6 +13,7 @@ import 'screens/customers/customer_form_screen.dart';
 import 'screens/invoices/invoices_list_screen.dart';
 import 'screens/invoices/invoice_form_screen.dart';
 import 'screens/transfers/transfers_list_screen.dart';
+import 'screens/home/home_screen.dart';
 
 // 🔴 1. استيراد شاشة السندات الجديدة
 import 'screens/vouchers/vouchers_list_screen.dart';
@@ -66,7 +67,6 @@ class MainShell extends StatelessWidget {
         destinations: const[
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'الرئيسية'),
           NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'الفواتير'),
-          // 🔴 3. إضافة أيقونة السندات في الشريط السفلي
           NavigationDestination(icon: Icon(Icons.monetization_on_outlined), selectedIcon: Icon(Icons.monetization_on), label: 'السندات'),
           NavigationDestination(icon: Icon(Icons.swap_horiz_outlined), selectedIcon: Icon(Icons.swap_horiz), label: 'المناقلات'),
           NavigationDestination(icon: Icon(Icons.people_outlined), selectedIcon: Icon(Icons.people), label: 'الزبائن'),
@@ -84,12 +84,9 @@ final goRouter = GoRouter(
     ShellRoute(
       builder: (context, state, child) => MainShell(child: child),
       routes:[
-        GoRoute(path: '/', builder: (context, state) => const TempScreen(title: AppStrings.homeTitle)),
+        GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
         GoRoute(path: '/invoices', builder: (context, state) => const InvoicesListScreen()),
-
-        // 🔴 4. ربط مسار السندات بالشاشة الحقيقية
         GoRoute(path: '/vouchers', builder: (context, state) => const VouchersListScreen()),
-
         GoRoute(path: '/transfers', builder: (context, state) => const TransfersListScreen()),
         GoRoute(path: '/customers', builder: (context, state) => const CustomersListScreen()),
         GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
