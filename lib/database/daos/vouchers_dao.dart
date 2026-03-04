@@ -61,6 +61,14 @@ class VouchersDao {
     await (db.delete(db.vouchers)..where((t) => t.id.equals(id))).go();
     return true;
   }
+
+  // ─── تحديث حالة السندات إلى مُرسلة ─────────────────────────
+  Future<void> markUnsentAsSent() async {
+    // نقوم بتحديث جميع السندات التي لم تُرسل بعد
+    await (db.update(db.vouchers)..where((t) => t.status.isNotValue('SENT'))).write(
+      const VouchersCompanion(status: Value('SENT')),
+    );
+  }
 }
 
 // ─── مزود Riverpod ──────────────────────────────────────

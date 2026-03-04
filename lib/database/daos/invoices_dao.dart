@@ -103,6 +103,15 @@ class InvoicesDao {
       const InvoicesCompanion(status: Value('ISSUED')),
     );
   }
+
+  // ─── 7. تحديث حالة الفواتير إلى مُرسلة ───
+  Future<void> markUnsentAsSent() async {
+    // نقوم بتحديث الفواتير المُخرجة (ISSUED) لتصبح مُرسلة (SENT)
+    // لا نحدث الـ DRAFT لأنها ما زالت مسودة
+    await (db.update(db.invoices)..where((t) => t.status.equals('ISSUED'))).write(
+      const InvoicesCompanion(status: Value('SENT')),
+    );
+  }
 }
 
 // المزود (Provider)
