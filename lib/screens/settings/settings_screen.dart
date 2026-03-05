@@ -12,6 +12,10 @@ import '../../database/daos/settings_dao.dart';
 import '../../database/daos/invoices_dao.dart';
 import '../../database/daos/vouchers_dao.dart';
 import '../../widgets/password_dialog.dart';
+import '../../services/excel_export_service.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../../database/daos/customers_dao.dart';
+import '../../database/daos/transfers_dao.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -49,24 +53,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  // دالة تصدير البيانات وإرسالها للمحاسب مع الحفظ الاحتياطي
+  // دالة تصدير البيانات وإرسالها للمحاسب مع الحفظ الاحتياطي الصحيح في مجلد التنزيلات
   Future<void> _exportDataToAccountant() async {
-    // 1. رسالة تأكيدية
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('تأكيد الإرسال', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
         content: const Text(
-          'تنبيه: سيتم إرسال جميع الفواتير والسندات غير المرسلة.\n\n'
-              'لن تتمكن من إعادة إرسال هذا الملف من هذه الشاشة لاحقاً.\n'
+          'تنبيه: سيتم إرسال جميع الحركات والزبائن غير المُرسلة.\n\n'
               'هل تريد الاستمرار؟',
           style: TextStyle(height: 1.5),
         ),
         actions:[
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.green),
             onPressed: () => Navigator.pop(context, true),
@@ -81,69 +80,67 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     setState(() => _isExporting = true);
 
     try {
-      // 2. توليد ملف الإكسيل
-      final dao = ref.read(settingsDaoProvider);
-      final delegateName = await dao.getValue('delegate_name') ?? 'مندوب';
+      final exportService = ref.read(excelExportServiceProvider);
+      // الملف المولد سيكون إما zip أو xlsx بناءً على وجود كلمة سر
+      final generatedFile = await exportService.generateAndExportExcel();
 
-      // إضافة الوقت بالدقائق والثواني لضمان عدم تكرار اسم الملف في نفس اليوم
-      final dateStr = DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now());
-      final fileName = 'Export_${dateStr}_$delegateName.xlsx';
-
-      var excel = Excel.createExcel();
-      // يمكن إضافة أوراق عمل وتنسيقات لاحقاً هنا
-
-      var fileBytes = excel.save();
-      if (fileBytes == null) throw Exception("فشل في توليد ملف الإكسيل");
-
-      // حفظ الملف في المسار المؤقت للمشاركة
-      final tempDirectory = await getTemporaryDirectory();
-      final tempFilePath = '${tempDirectory.path}/$fileName';
-      File(tempFilePath)
-        ..createSync(recursive: true)
-        ..writeAsBytesSync(fileBytes);
-
-      // 3. مشاركة الملف
+      // مشاركة الملف للواتساب
       final result = await Share.shareXFiles(
-        [XFile(tempFilePath)],
-        text: 'مرفق ملف حركات المندوب: $delegateName\nتاريخ: $dateStr',
+        [XFile(generatedFile.path)],
+        text: 'مرفق ملف حركات المندوب\nتاريخ: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}',
       );
 
-      // 4. إذا تمت عملية المشاركة بنجاح (فتح نافذة المشاركة)
       if (result.status == ShareResultStatus.success) {
 
-        // أ) تحديث حالة البيانات في قاعدة البيانات
+        // 1. تحديث حالة البيانات للمرسلة
         await ref.read(invoicesDaoProvider).markUnsentAsSent();
         await ref.read(vouchersDaoProvider).markUnsentAsSent();
 
-        // ب) حفظ نسخة احتياطية محلية في جهاز المندوب للرجوع إليها
+        // السطر الجديد النظيف لتحديث الزبائن
+        await ref.read(customersDaoProvider).markUnsentAsSent();
+        // 🔴 الإضافة الجديدة: تحديث المناقلات 🔴
+        await ref.read(transfersDaoProvider).markUnsentAsSent();
+
+        // 2. 🔴 الحفظ في مجلد التنزيلات العام (Downloads) ليتمكن المندوب من الوصول للملف 🔴
         String backupMessage = '';
         try {
-          // نحصل على مجلد المستندات الخاص بالتطبيق
-          final docsDirectory = await getApplicationDocumentsDirectory();
-          final backupDirPath = '${docsDirectory.path}/Backups';
+          await Permission.storage.request(); // طلب الصلاحية
 
-          final backupDir = Directory(backupDirPath);
-          if (!await backupDir.exists()) {
-            await backupDir.create(recursive: true);
+          // مسار مجلد التنزيلات العام للأندرويد
+          String publicDownloadPath = '/storage/emulated/0/Download/نسخ_المندوب_الاحتياطية';
+
+          final publicDir = Directory(publicDownloadPath);
+          if (!await publicDir.exists()) {
+            await publicDir.create(recursive: true);
           }
 
-          final backupFilePath = '$backupDirPath/$fileName';
+          // استخراج اسم الملف (مع لاحقته الحقيقية zip أو xlsx)
+          final fileName = generatedFile.path.split('/').last;
+          final publicBackupPath = '$publicDownloadPath/$fileName';
 
-          // نسخ الملف من المسار المؤقت إلى مسار النسخ الاحتياطية
-          await File(tempFilePath).copy(backupFilePath);
+          await generatedFile.copy(publicBackupPath);
+          backupMessage = '\nتم حفظ نسخة أمان في مجلد (التنزيلات > نسخ_المندوب_الاحتياطية).';
 
-          backupMessage = '\nتم حفظ نسخة احتياطية في مجلد المستندات.';
-        } catch (backupError) {
-          backupMessage = '\n(ملاحظة: فشل حفظ النسخة الاحتياطية محلياً)';
+        } catch (e) {
+          // الخطة البديلة في حال كان نظام الأندرويد يمنع الوصول الصريح (Android 11+)
+          try {
+            final docsDirectory = await getApplicationDocumentsDirectory();
+            final backupDirPath = '${docsDirectory.path}/Backups_Exported';
+            final backupDir = Directory(backupDirPath);
+            if (!await backupDir.exists()) await backupDir.create(recursive: true);
+
+            final fileName = generatedFile.path.split('/').last;
+            await generatedFile.copy('$backupDirPath/$fileName');
+            backupMessage = '\nتم حفظ نسخة أمان في ملفات التطبيق (تعذر الوصول للتنزيلات العامة).';
+          } catch (_) {}
         }
 
-        // ج) إظهار رسالة النجاح
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('تمت مشاركة الملف وتحديث حالة البيانات بنجاح!$backupMessage'),
+              content: Text('تمت العملية بنجاح!$backupMessage'),
               backgroundColor: Colors.green,
-              duration: const Duration(seconds: 5), // مدة أطول ليتمكن من قراءتها
+              duration: const Duration(seconds: 5),
             ),
           );
         }
@@ -155,9 +152,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isExporting = false);
-      }
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 

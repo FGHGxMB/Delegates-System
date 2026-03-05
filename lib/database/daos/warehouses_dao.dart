@@ -19,10 +19,13 @@ class WarehousesDao {
   }
 
   // إضافة مستودع جديد
-  Future<int> addWarehouse(String name) {
+  Future<int> addWarehouse(String code, String name) {
     return db.into(db.warehouses).insert(
-      WarehousesCompanion(name: Value(name)),
-      mode: InsertMode.insertOrIgnore, // تجاهل إذا كان الاسم موجوداً مسبقاً
+      WarehousesCompanion(
+          code: Value(code),
+          name: Value(name)
+      ),
+      mode: InsertMode.insertOrIgnore,
     );
   }
 

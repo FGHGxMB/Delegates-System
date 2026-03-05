@@ -32,7 +32,7 @@ class _ProtectedSettingsScreenState extends ConsumerState<ProtectedSettingsScree
 
   bool _obscurePassword = true;
   bool _isLoading = true;
-  String? _selectedDefaultWarehouse;
+  String? _selectedDefaultWarehouseCode;
 
   @override
   void initState() {
@@ -57,7 +57,7 @@ class _ProtectedSettingsScreenState extends ConsumerState<ProtectedSettingsScree
 
     // إعدادات النظام
     _delegatePasswordController.text = await dao.getValue('custom_delegate_password') ?? '';
-    _selectedDefaultWarehouse = await dao.getValue('default_warehouse_name');
+    _selectedDefaultWarehouseCode = await dao.getValue('default_warehouse_code');
 
     setState(() => _isLoading = false);
   }
@@ -85,8 +85,8 @@ class _ProtectedSettingsScreenState extends ConsumerState<ProtectedSettingsScree
 
       // حفظ إعدادات النظام
       await dao.setValue('custom_delegate_password', _delegatePasswordController.text.trim());
-      if (_selectedDefaultWarehouse != null) {
-        await dao.setValue('default_warehouse_name', _selectedDefaultWarehouse!);
+      if (_selectedDefaultWarehouseCode != null) {
+        await dao.setValue('default_warehouse_code', _selectedDefaultWarehouseCode!);
       }
 
       // تحديث الزبائن في حال تغير الرمز الرئيسي
@@ -211,18 +211,19 @@ class _ProtectedSettingsScreenState extends ConsumerState<ProtectedSettingsScree
                       stream: warehousesStream,
                       builder: (context, snapshot) {
                         final warehouses = snapshot.data ??[];
-                        if (warehouses.isNotEmpty && _selectedDefaultWarehouse != null) {
-                          final exists = warehouses.any((w) => w.name == _selectedDefaultWarehouse);
-                          if (!exists) _selectedDefaultWarehouse = null;
+                        if (warehouses.isNotEmpty && _selectedDefaultWarehouseCode != null) {
+                          final exists = warehouses.any((w) => w.code == _selectedDefaultWarehouseCode);
+                          if (!exists) _selectedDefaultWarehouseCode = null;
                         }
 
                         return DropdownButtonFormField<String>(
-                          value: _selectedDefaultWarehouse,
+                          value: _selectedDefaultWarehouseCode,
                           hint: const Text('اختر مستودعاً'),
                           items: warehouses.map((w) {
-                            return DropdownMenuItem(value: w.name, child: Text(w.name));
+                            // نعرض الاسم والرمز، ونحفظ الرمز
+                            return DropdownMenuItem(value: w.code, child: Text('${w.name} (${w.code})'));
                           }).toList(),
-                          onChanged: (val) => setState(() => _selectedDefaultWarehouse = val),
+                          onChanged: (val) => setState(() => _selectedDefaultWarehouseCode = val),
                           decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12)),
                         );
                       }

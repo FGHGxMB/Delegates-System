@@ -68,8 +68,8 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
     final rateStr = await settings.getValue('exchange_rate') ?? '1';
     _exchangeRate = double.tryParse(rateStr) ?? 1.0;
 
-    _cashAccountSyp = await settings.getValue('cash_account_syp') ?? '';
-    _cashAccountUsd = await settings.getValue('cash_account_usd') ?? '';
+    _cashAccountSyp = await settings.getValue('delegate_syp_box_code') ?? '';
+    _cashAccountUsd = await settings.getValue('delegate_usd_box_code') ?? '';
     _mainCustomerPrefix = await settings.getValue('main_account_prefix') ?? '12101';
 
     // 2. بناء قائ.مة ذكية تجمع (الزبائن + الحسابات)
@@ -160,23 +160,13 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
       return;
     }
 
-    // التحقق من أن المدير قام ببرمجة الصناديق في الإعدادات
-    if (_currency == 'SYP' && _cashAccountSyp.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لم يتم تحديد رمز صندوق الليرة في الإعدادات المحمية!'), backgroundColor: Colors.red));
-      return;
-    }
-    if (_currency == 'USD' && _cashAccountUsd.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لم يتم تحديد رمز صندوق الدولار في الإعدادات المحمية!'), backgroundColor: Colors.red));
-      return;
-    }
+    // 🔴 تم إزالة قيد التحقق من وجود رموز الصناديق هنا كما طلبت 🔴
 
-    // التحديد التلقائي لصندوق المندوب بناءً على العملة
+    // التحديد التلقائي لصندوق المندوب بناءً على العملة (حتى لو كان فارغاً سيتم حفظه فارغاً)
     String cashCode = _currency == 'USD' ? _cashAccountUsd : _cashAccountSyp;
     String counterpartCode = _selectedCounterpart!.code;
 
     // المنطق المحاسبي الدقيق:
-    // في سند القبض: الصندوق يستلم (مدين) والطرف الآخر يدفع (دائن).
-    // في سند الدفع: الصندوق يدفع (دائن) والطرف الآخر يستلم (مدين).
     String debit = widget.type == 'RECEIPT' ? cashCode : counterpartCode;
     String credit = widget.type == 'RECEIPT' ? counterpartCode : cashCode;
 

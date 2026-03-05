@@ -8,9 +8,10 @@ class Settings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
-// 2. جدول المستودعات (جديد)
+// 2. جدول المستودعات (تم التحديث)
 class Warehouses extends Table {
   IntColumn get id => integer().autoIncrement()();
+  TextColumn get code => text().unique()(); // [جديد] رمز المستودع
   TextColumn get name => text().unique()();
 }
 

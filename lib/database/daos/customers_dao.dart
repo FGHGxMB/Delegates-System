@@ -186,6 +186,19 @@ class CustomersDao {
       }).toList();
     });
   }
+
+  // ─── تحديث حالة الزبائن بعد إرسال ملف الإكسيل ───
+  Future<void> markUnsentAsSent() async {
+    await (db.update(db.customers)
+      ..where((t) => t.isSent.equals(false) | t.isModified.equals(true))
+    ).write(
+      // قمنا بإزالة كلمة const لتجنب أي خطأ، واستخدمنا Value مباشرة
+      const CustomersCompanion(
+        isSent: Value(true),
+        isModified: Value(false),
+      ),
+    );
+  }
 }
 
 final customersDaoProvider = Provider<CustomersDao>((ref) {

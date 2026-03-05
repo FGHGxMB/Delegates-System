@@ -207,6 +207,13 @@ class $WarehousesTable extends Warehouses
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _codeMeta = const VerificationMeta('code');
+  @override
+  late final GeneratedColumn<String> code = GeneratedColumn<String>(
+      'code', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -215,7 +222,7 @@ class $WarehousesTable extends Warehouses
       requiredDuringInsert: true,
       defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
   @override
-  List<GeneratedColumn> get $columns => [id, name];
+  List<GeneratedColumn> get $columns => [id, code, name];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -228,6 +235,12 @@ class $WarehousesTable extends Warehouses
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('code')) {
+      context.handle(
+          _codeMeta, code.isAcceptableOrUnknown(data['code']!, _codeMeta));
+    } else if (isInserting) {
+      context.missing(_codeMeta);
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -246,6 +259,8 @@ class $WarehousesTable extends Warehouses
     return Warehouse(
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      code: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}code'])!,
       name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
     );
@@ -259,12 +274,14 @@ class $WarehousesTable extends Warehouses
 
 class Warehouse extends DataClass implements Insertable<Warehouse> {
   final int id;
+  final String code;
   final String name;
-  const Warehouse({required this.id, required this.name});
+  const Warehouse({required this.id, required this.code, required this.name});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    map['code'] = Variable<String>(code);
     map['name'] = Variable<String>(name);
     return map;
   }
@@ -272,6 +289,7 @@ class Warehouse extends DataClass implements Insertable<Warehouse> {
   WarehousesCompanion toCompanion(bool nullToAbsent) {
     return WarehousesCompanion(
       id: Value(id),
+      code: Value(code),
       name: Value(name),
     );
   }
@@ -281,6 +299,7 @@ class Warehouse extends DataClass implements Insertable<Warehouse> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Warehouse(
       id: serializer.fromJson<int>(json['id']),
+      code: serializer.fromJson<String>(json['code']),
       name: serializer.fromJson<String>(json['name']),
     );
   }
@@ -289,17 +308,20 @@ class Warehouse extends DataClass implements Insertable<Warehouse> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'code': serializer.toJson<String>(code),
       'name': serializer.toJson<String>(name),
     };
   }
 
-  Warehouse copyWith({int? id, String? name}) => Warehouse(
+  Warehouse copyWith({int? id, String? code, String? name}) => Warehouse(
         id: id ?? this.id,
+        code: code ?? this.code,
         name: name ?? this.name,
       );
   Warehouse copyWithCompanion(WarehousesCompanion data) {
     return Warehouse(
       id: data.id.present ? data.id.value : this.id,
+      code: data.code.present ? data.code.value : this.code,
       name: data.name.present ? data.name.value : this.name,
     );
   }
@@ -308,43 +330,55 @@ class Warehouse extends DataClass implements Insertable<Warehouse> {
   String toString() {
     return (StringBuffer('Warehouse(')
           ..write('id: $id, ')
+          ..write('code: $code, ')
           ..write('name: $name')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name);
+  int get hashCode => Object.hash(id, code, name);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is Warehouse && other.id == this.id && other.name == this.name);
+      (other is Warehouse &&
+          other.id == this.id &&
+          other.code == this.code &&
+          other.name == this.name);
 }
 
 class WarehousesCompanion extends UpdateCompanion<Warehouse> {
   final Value<int> id;
+  final Value<String> code;
   final Value<String> name;
   const WarehousesCompanion({
     this.id = const Value.absent(),
+    this.code = const Value.absent(),
     this.name = const Value.absent(),
   });
   WarehousesCompanion.insert({
     this.id = const Value.absent(),
+    required String code,
     required String name,
-  }) : name = Value(name);
+  })  : code = Value(code),
+        name = Value(name);
   static Insertable<Warehouse> custom({
     Expression<int>? id,
+    Expression<String>? code,
     Expression<String>? name,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (code != null) 'code': code,
       if (name != null) 'name': name,
     });
   }
 
-  WarehousesCompanion copyWith({Value<int>? id, Value<String>? name}) {
+  WarehousesCompanion copyWith(
+      {Value<int>? id, Value<String>? code, Value<String>? name}) {
     return WarehousesCompanion(
       id: id ?? this.id,
+      code: code ?? this.code,
       name: name ?? this.name,
     );
   }
@@ -354,6 +388,9 @@ class WarehousesCompanion extends UpdateCompanion<Warehouse> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (code.present) {
+      map['code'] = Variable<String>(code.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -365,6 +402,7 @@ class WarehousesCompanion extends UpdateCompanion<Warehouse> {
   String toString() {
     return (StringBuffer('WarehousesCompanion(')
           ..write('id: $id, ')
+          ..write('code: $code, ')
           ..write('name: $name')
           ..write(')'))
         .toString();
@@ -6420,10 +6458,12 @@ class $$SettingsTableOrderingComposer
 
 typedef $$WarehousesTableCreateCompanionBuilder = WarehousesCompanion Function({
   Value<int> id,
+  required String code,
   required String name,
 });
 typedef $$WarehousesTableUpdateCompanionBuilder = WarehousesCompanion Function({
   Value<int> id,
+  Value<String> code,
   Value<String> name,
 });
 
@@ -6445,18 +6485,22 @@ class $$WarehousesTableTableManager extends RootTableManager<
               $$WarehousesTableOrderingComposer(ComposerState(db, table)),
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
+            Value<String> code = const Value.absent(),
             Value<String> name = const Value.absent(),
           }) =>
               WarehousesCompanion(
             id: id,
+            code: code,
             name: name,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
+            required String code,
             required String name,
           }) =>
               WarehousesCompanion.insert(
             id: id,
+            code: code,
             name: name,
           ),
         ));
@@ -6467,6 +6511,11 @@ class $$WarehousesTableFilterComposer
   $$WarehousesTableFilterComposer(super.$state);
   ColumnFilters<int> get id => $state.composableBuilder(
       column: $state.table.id,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get code => $state.composableBuilder(
+      column: $state.table.code,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -6481,6 +6530,11 @@ class $$WarehousesTableOrderingComposer
   $$WarehousesTableOrderingComposer(super.$state);
   ColumnOrderings<int> get id => $state.composableBuilder(
       column: $state.table.id,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get code => $state.composableBuilder(
+      column: $state.table.code,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 

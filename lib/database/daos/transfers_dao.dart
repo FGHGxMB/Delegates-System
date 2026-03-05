@@ -68,6 +68,13 @@ class TransfersDao {
     });
     return true;
   }
+
+  // ─── تحديث حالة المناقلات إلى مُرسلة ───
+  Future<void> markUnsentAsSent() async {
+    await (db.update(db.transfers)..where((t) => t.status.isNotValue('SENT'))).write(
+      const TransfersCompanion(status: Value('SENT')),
+    );
+  }
 }
 
 // ─── مزود الـ Provider ───
