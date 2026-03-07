@@ -176,9 +176,12 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
           double wholesaleSnap = 0.0;
 
           if (autoLoadPrices) {
-            price = unit == 1 ? p.unit1PriceRetail : unit == 2 ? p.unit2PriceRetail! : p.unit3PriceRetail!;
-            retailSnap = price;
+            // أخذ اللقطات الصحيحة للسعرين
+            retailSnap = unit == 1 ? p.unit1PriceRetail : unit == 2 ? p.unit2PriceRetail! : p.unit3PriceRetail!;
             wholesaleSnap = unit == 1 ? p.unit1PriceWholesale : unit == 2 ? p.unit2PriceWholesale! : p.unit3PriceWholesale!;
+
+            // 🔴 التعديل الجذري: السعر الافتراضي للبيع أصبح سعر المحل (الجملة) وليس المستهلك 🔴
+            price = wholesaleSnap;
 
             if (_currency == 'SYP' && p.currency == 'USD') {
               price = price * _exchangeRate;
@@ -196,7 +199,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             unitNumber: unit,
             unitName: unitName,
             quantity: 1.0,
-            price: price,
+            price: price, // سينزل هنا سعر المحل
             retailSnapshot: retailSnap,
             wholesaleSnapshot: wholesaleSnap,
           ));
@@ -272,10 +275,14 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         line.unitNumber = selected;
         line.unitName = selected == 1 ? line.product.unit1Name : selected == 2 ? line.product.unit2Name! : line.product.unit3Name!;
 
-        double p = selected == 1 ? line.product.unit1PriceRetail : selected == 2 ? line.product.unit2PriceRetail! : line.product.unit3PriceRetail!;
-        double rSnap = p;
+        // أخذ اللقطات الصحيحة للوحدة الجديدة
+        double rSnap = selected == 1 ? line.product.unit1PriceRetail : selected == 2 ? line.product.unit2PriceRetail! : line.product.unit3PriceRetail!;
         double wSnap = selected == 1 ? line.product.unit1PriceWholesale : selected == 2 ? line.product.unit2PriceWholesale! : line.product.unit3PriceWholesale!;
 
+        // 🔴 التعديل هنا أيضاً: السعر الجديد سيعتمد على سعر المحل 🔴
+        double p = wSnap;
+
+        // معالجة العملات
         if (_currency == 'SYP' && line.product.currency == 'USD') {
           p *= _exchangeRate;
           rSnap *= _exchangeRate;
