@@ -4,6 +4,7 @@ import '../../database/database.dart';
 import '../../database/daos/transfers_dao.dart';
 import '../../config/app_colors.dart';
 import 'transfer_form_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class TransfersListScreen extends ConsumerWidget {
   const TransfersListScreen({Key? key}) : super(key: key);
@@ -43,7 +44,7 @@ class TransfersListScreen extends ConsumerWidget {
                     visualDensity: VisualDensity.compact,
                   ),
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => TransferFormScreen(transferId: t.id)));
+                    context.push('/transfer_form/${t.id}');
                   },
                 ),
               );
@@ -52,7 +53,7 @@ class TransfersListScreen extends ConsumerWidget {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TransferFormScreen(transferId: 0))),
+        onPressed: () => context.push('/transfer_form/0'),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('مناقلة جديدة', style: TextStyle(color: Colors.white)),

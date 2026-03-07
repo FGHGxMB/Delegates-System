@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'daos/database_seeder.dart';
 
 // استيراد الجداول التي أنشأناها
 import 'tables.dart';
@@ -35,7 +36,15 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration {
     return MigrationStrategy(
       onCreate: (Migrator m) async {
+        // 1. إنشاء كل الجداول بناءً على tables.dart
         await m.createAll();
+
+        // 2. تفعيل مفاتيح الربط قبل إدخال البيانات (مهم جداً!)
+        await customStatement('PRAGMA foreign_keys = ON');
+
+        // 3. استدعاء ملف التأسيس لحقن البيانات الافتراضية
+        final seeder = DatabaseSeeder(this);
+        await seeder.seedInitialData();
       },
       beforeOpen: (details) async {
         await customStatement('PRAGMA foreign_keys = ON');

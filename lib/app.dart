@@ -14,6 +14,8 @@ import 'screens/invoices/invoices_list_screen.dart';
 import 'screens/invoices/invoice_form_screen.dart';
 import 'screens/transfers/transfers_list_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/vouchers/voucher_form_screen.dart';
+import 'screens/transfers/transfer_form_screen.dart';
 
 // 🔴 1. استيراد شاشة السندات الجديدة
 import 'screens/vouchers/vouchers_list_screen.dart';
@@ -129,6 +131,24 @@ final goRouter = GoRouter(
         final type = state.pathParameters['type']!;
         final invoiceId = int.parse(state.pathParameters['invoiceId']!);
         return InvoiceFormScreen(type: type, invoiceId: invoiceId);
+      },
+    ),
+    // الإضافة الجديدة: مسار نموذج السندات
+    GoRoute(
+      path: '/voucher_form/:type/:voucherId',
+      builder: (context, state) {
+        final type = state.pathParameters['type']!;
+        final voucherId = int.parse(state.pathParameters['voucherId']!);
+        return VoucherFormScreen(type: type, voucherId: voucherId);
+      },
+    ),
+
+    // الإضافة الجديدة: مسار نموذج المناقلات
+    GoRoute(
+      path: '/transfer_form/:transferId',
+      builder: (context, state) {
+        final transferId = int.parse(state.pathParameters['transferId']!);
+        return TransferFormScreen(transferId: transferId);
       },
     ),
   ],

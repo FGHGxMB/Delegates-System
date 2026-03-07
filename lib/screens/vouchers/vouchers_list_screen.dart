@@ -6,6 +6,7 @@ import '../../config/app_colors.dart';
 import '../../config/app_strings.dart';
 import '../../utils/currency_utils.dart';
 import 'voucher_form_screen.dart'; // استدعاء شاشة الإضافة والتعديل
+import 'package:go_router/go_router.dart';
 
 class VouchersListScreen extends ConsumerWidget {
   const VouchersListScreen({Key? key}) : super(key: key);
@@ -98,16 +99,8 @@ class VouchersListScreen extends ConsumerWidget {
                     ],
                   ),
                   onTap: () {
-                    // فتح السند للتعديل أو العرض
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => VoucherFormScreen(
-                          type: voucher.type,
-                          voucherId: voucher.id,
-                        ),
-                      ),
-                    );
+                    // فتح السند للتعديل أو العرض بملء الشاشة
+                    context.push('/voucher_form/${voucher.type}/${voucher.id}');
                   },
                 ),
               );
@@ -146,8 +139,8 @@ class VouchersListScreen extends ConsumerWidget {
                 leading: const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.arrow_downward, color: Colors.white)),
                 title: const Text('سند قبض (استلام مبلغ)', style: TextStyle(fontWeight: FontWeight.bold)),
                 onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const VoucherFormScreen(type: 'RECEIPT', voucherId: 0)));
+                  Navigator.pop(ctx); // إغلاق النافذة المنبثقة أولاً
+                  context.push('/voucher_form/RECEIPT/0'); // الانتقال بملء الشاشة
                 },
               ),
               const Divider(),
@@ -155,8 +148,8 @@ class VouchersListScreen extends ConsumerWidget {
                 leading: const CircleAvatar(backgroundColor: Colors.red, child: Icon(Icons.arrow_upward, color: Colors.white)),
                 title: const Text('سند دفع (دفع مبلغ)', style: TextStyle(fontWeight: FontWeight.bold)),
                 onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const VoucherFormScreen(type: 'PAYMENT', voucherId: 0)));
+                  Navigator.pop(ctx); // إغلاق النافذة المنبثقة أولاً
+                  context.push('/voucher_form/PAYMENT/0'); // الانتقال بملء الشاشة
                 },
               ),
               const SizedBox(height: 16),
