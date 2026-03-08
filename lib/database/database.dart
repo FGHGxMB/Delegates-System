@@ -26,7 +26,9 @@ part 'database.g.dart';
   TransferLines,
 ])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  final String dbFileName;
+
+  AppDatabase(this.dbFileName) : super(_openConnection(dbFileName));
 
   @override
   int get schemaVersion => 1;
@@ -53,12 +55,11 @@ class AppDatabase extends _$AppDatabase {
   }
 }
 
-// دالة تحديد مسار قاعدة البيانات في الهاتف
-LazyDatabase _openConnection() {
+// 🔴 تعديل: الدالة أصبحت تقبل اسم الملف
+LazyDatabase _openConnection(String dbFileName) {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();
-    // اسم ملف قاعدة البيانات
-    final file = File(p.join(dbFolder.path, 'delegates_app.sqlite'));
+    final file = File(p.join(dbFolder.path, '$dbFileName.sqlite'));
     return NativeDatabase.createInBackground(file);
   });
 }

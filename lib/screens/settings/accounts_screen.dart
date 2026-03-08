@@ -93,18 +93,19 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
                   return; // يمنع الحفظ ولا يغلق النافذة
                 }
 
-                final newAccount = Account(
-                  id: existing?.id ?? 0,
-                  code: codeCtrl.text.trim(),
-                  name: nameCtrl.text.trim(),
-                  currency: currency,
-                  accountType: type,
-                  isSystem: existing?.isSystem ?? false,
-                  isActive: existing?.isActive ?? true,
-                  displayOrder: existing?.displayOrder ?? 999,
+                final companion = AccountsCompanion(
+                  // إذا كان جديداً نتركه absent لتتولى الداتا بيز ترقيمه، وإلا نعطيه الـ ID القديم للتعديل
+                  id: existing == null ? const drift.Value.absent() : drift.Value(existing.id),
+                  code: drift.Value(codeCtrl.text.trim()),
+                  name: drift.Value(nameCtrl.text.trim()),
+                  currency: drift.Value(currency),
+                  accountType: drift.Value(type),
+                  isSystem: drift.Value(existing?.isSystem ?? false),
+                  isActive: drift.Value(existing?.isActive ?? true),
+                  displayOrder: drift.Value(existing?.displayOrder ?? 999),
                 );
 
-                await dao.saveAccount(newAccount);
+                await dao.saveAccount(companion);
                 if (context.mounted) Navigator.pop(context);
               },
               child: const Text(AppStrings.save),

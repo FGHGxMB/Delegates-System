@@ -17,13 +17,31 @@ class InvoicesDao {
 
   InvoicesDao(this.db, this.settingsDao);
 
-  // ─── 1. جلب الفواتير (للقوائم) ───
-  Stream<List<Invoice>> watchInvoices(String type) {
-    // type: 'SALE' أو 'RETURN'
-    return (db.select(db.invoices)
-      ..where((t) => t.type.equals(type))
-      ..orderBy([(t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)]))
-        .watch();
+  // ─── 1. جلب الفواتير (للقوائم) مع الفلاتر ───
+  Stream<List<Invoice>> watchInvoices(String type, String statusFilter, String paymentFilter, String sortFilter) {
+    final query = db.select(db.invoices)..where((t) => t.type.equals(type));
+
+    // فلتر الحالة (مُخرجة، مسودة، مُرسلة)
+    if (statusFilter != 'ALL') {
+      query.where((t) => t.status.equals(statusFilter));
+    }
+    // فلتر نوع الدفع (نقدي، آجل)
+    if (paymentFilter != 'ALL') {
+      query.where((t) => t.paymentMethod.equals(paymentFilter));
+    }
+
+    // الترتيب
+    if (sortFilter == 'NEWEST') {
+      query.orderBy([(t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)]);
+    } else if (sortFilter == 'OLDEST') {
+      query.orderBy([(t) => OrderingTerm(expression: t.id, mode: OrderingMode.asc)]);
+    } else if (sortFilter == 'HIGH_AMOUNT') {
+      query.orderBy([(t) => OrderingTerm(expression: t.total, mode: OrderingMode.desc)]);
+    } else if (sortFilter == 'LOW_AMOUNT') {
+      query.orderBy([(t) => OrderingTerm(expression: t.total, mode: OrderingMode.asc)]);
+    }
+
+    return query.watch();
   }
 
   // ─── 2. جلب فاتورة واحدة مع أقلامها (للتعديل والعرض) ───

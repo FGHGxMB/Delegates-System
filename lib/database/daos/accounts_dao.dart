@@ -15,8 +15,16 @@ class AccountsDao {
   }
 
   // إضافة أو تحديث حساب
-  Future<void> saveAccount(Account account) async {
-    await db.into(db.accounts).insertOnConflictUpdate(account);
+  Future<void> saveAccount(AccountsCompanion accountCompanion) async {
+    await db.transaction(() async {
+      if (accountCompanion.id.present) {
+        // إذا كان يمتلك ID، فهذا يعني أنه تعديل (Update)
+        await (db.update(db.accounts)..where((t) => t.id.equals(accountCompanion.id.value))).write(accountCompanion);
+      } else {
+        // إذا لم يكن يمتلك ID، فهذا يعني أنه حساب جديد (Insert)
+        await db.into(db.accounts).insert(accountCompanion);
+      }
+    });
   }
 
   // ترتيب الحسابات (السحب والإفلات)

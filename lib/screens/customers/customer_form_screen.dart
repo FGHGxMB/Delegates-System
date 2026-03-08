@@ -26,6 +26,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
   final _notesCtrl = TextEditingController();
   final _neighborhoodCtrl = TextEditingController();
   final _streetCtrl = TextEditingController();
+  final _initialBalanceCtrl = TextEditingController(text: '0');
 
   String _currency = 'SYP';
   String _gender = 'M';
@@ -53,6 +54,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
     _neighborhoodCtrl.text = _existingCustomer!.neighborhood ?? '';
     _streetCtrl.text = _existingCustomer!.street ?? '';
     _notesCtrl.text = _existingCustomer!.notes ?? '';
+    _initialBalanceCtrl.text = _existingCustomer!.initialBalance.toString();
     _currency = _existingCustomer!.currency;
     _gender = _existingCustomer!.gender;
     _selectedCity = _existingCustomer!.city ?? DefaultData.cities.first;
@@ -84,6 +86,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
       email: drift.Value(_emailCtrl.text.trim()),
       notes: drift.Value(_notesCtrl.text.trim()),
       accountCode: widget.customerId == 0 ? const drift.Value.absent() : drift.Value(_existingCustomer!.accountCode),
+      initialBalance: drift.Value(double.tryParse(_initialBalanceCtrl.text.trim()) ?? 0.0),
     );
 
     await dao.saveCustomer(companion, isNew: widget.customerId == 0);
@@ -153,6 +156,23 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                       decoration: const InputDecoration(labelText: AppStrings.customerName),
                       validator: (v) => v!.isEmpty ? AppStrings.fieldRequired : null,
                     ),
+                    const SizedBox(height: 16),
+
+                    // 🔴 حقل الرصيد الافتتاحي 🔴
+                    TextFormField(
+                      controller: _initialBalanceCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 18),
+                      decoration: InputDecoration(
+                        labelText: 'الرصيد السابق (الافتتاحي)',
+                        hintText: 'المبلغ الذي بذمة الزبون قبل بدء التطبيق',
+                        suffixText: _currency,
+                        border: const OutlineInputBorder(),
+                        filled: true,
+                        fillColor: Colors.blue.shade50,
+                      ),
+                    ),
+
                     const SizedBox(height: 16),
                     const Text(AppStrings.gender, style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),

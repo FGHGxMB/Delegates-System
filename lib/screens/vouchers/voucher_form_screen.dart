@@ -10,7 +10,6 @@ import '../../database/database.dart';
 import '../../utils/currency_utils.dart';
 import '../../providers/database_provider.dart';
 
-// ─── كلاس مساعد لجمع الزبائن والحسابات في قائمة واحدة ───
 class CounterpartItem {
   final String code;
   final String name;
@@ -18,13 +17,12 @@ class CounterpartItem {
   final bool isCustomer;
 
   CounterpartItem({required this.code, required this.name, required this.currency, required this.isCustomer});
-
   String get displayName => isCustomer ? '$name (زبون)' : '$name (حساب)';
 }
 
 class VoucherFormScreen extends ConsumerStatefulWidget {
-  final String type; // 'RECEIPT' أو 'PAYMENT'
-  final int voucherId; // 0 تعني سند جديد
+  final String type;
+  final int voucherId;
 
   const VoucherFormScreen({Key? key, required this.type, required this.voucherId}) : super(key: key);
 
@@ -36,10 +34,12 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
   bool _isLoading = true;
   bool _canPopScope = false;
 
+  // 🔴 فصلنا الـ ID لكي نتمكن من تصفيره عند إنشاء سند جديد من الدرج
+  int _currentVoucherId = 0;
+
   String _status = 'DRAFT';
   DateTime _date = DateTime.now();
   String _currency = 'SYP';
-  double _amount = 0.0;
   double _exchangeRate = 1.0;
 
   CounterpartItem? _selectedCounterpart;
@@ -57,6 +57,7 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
   @override
   void initState() {
     super.initState();
+    _currentVoucherId = widget.voucherId;
     _loadData();
   }
 
@@ -64,7 +65,6 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
     final settings = ref.read(settingsDaoProvider);
     final db = ref.read(databaseProvider);
 
-    // 1. جلب الإعدادات وأسعار الصرف وصناديق المندوب
     final rateStr = await settings.getValue('exchange_rate') ?? '1';
     _exchangeRate = double.tryParse(rateStr) ?? 1.0;
 
@@ -72,40 +72,26 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
     _cashAccountUsd = await settings.getValue('delegate_usd_box_code') ?? '';
     _mainCustomerPrefix = await settings.getValue('main_account_prefix') ?? '12101';
 
-    // 2. بناء قائ.مة ذكية تجمع (الزبائن + الحسابات)
     final customers = await db.select(db.customers).get();
     final accounts = await db.select(db.accounts).get();
 
     _allCounterparts =[
-      ...customers.map((c) => CounterpartItem(
-          code: c.accountCode,
-          name: c.name,
-          currency: c.currency,
-          isCustomer: true)),
-      // نستثني صناديق المندوب من القائمة كي لا يحول المندوب لنفسه!
-      ...accounts.where((a) => a.code != _cashAccountSyp && a.code != _cashAccountUsd).map((a) => CounterpartItem(
-          code: a.code,
-          name: a.name,
-          currency: a.currency,
-          isCustomer: false))
+      ...customers.map((c) => CounterpartItem(code: c.accountCode, name: c.name, currency: c.currency, isCustomer: true)),
+      ...accounts.where((a) => a.code != _cashAccountSyp && a.code != _cashAccountUsd).map((a) => CounterpartItem(code: a.code, name: a.name, currency: a.currency, isCustomer: false))
     ];
 
-    // 3. جلب بيانات السند في حال التعديل
-    if (widget.voucherId != 0) {
+    if (_currentVoucherId != 0) {
       final vDao = ref.read(vouchersDaoProvider);
-      final v = await vDao.getVoucherById(widget.voucherId);
+      final v = await vDao.getVoucherById(_currentVoucherId);
       if (v != null) {
         _status = v.status;
         _date = DateTime.parse(v.date);
         _currency = v.currency;
-        _amount = v.amount;
         _exchangeRate = v.exchangeRate ?? _exchangeRate;
         _noteCtrl.text = v.note ?? '';
         _amountCtrl.text = CurrencyUtils.format(v.amount);
 
-        // من هو الطرف الآخر؟
         String counterpartCode = widget.type == 'RECEIPT' ? v.creditAccount : v.debitAccount;
-
         try {
           _selectedCounterpart = _allCounterparts.firstWhere((c) => c.code == counterpartCode);
           _searchCtrl.text = _selectedCounterpart!.displayName;
@@ -116,7 +102,6 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
     }
 
     if (_status == 'SENT') _canPopScope = true;
-
     setState(() => _isLoading = false);
   }
 
@@ -124,12 +109,7 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
 
   Future<void> _selectDate() async {
     if (_isReadOnly) return;
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
+    final picked = await showDatePicker(context: context, initialDate: _date, firstDate: DateTime(2020), lastDate: DateTime(2100));
     if (picked != null) setState(() => _date = picked);
   }
 
@@ -138,15 +118,65 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
     setState(() {
       _selectedCounterpart = item;
       _searchCtrl.text = item.displayName;
-
-      // السحر هنا: تغيير وقفل العملة تلقائياً بناءً على الحساب
-      if (item.currency == 'SYP') {
-        _currency = 'SYP';
-      } else if (item.currency == 'USD') {
-        _currency = 'USD';
-      }
-      // إذا كانت عملة الحساب 'BOTH'، نترك للمندوب حرية اختيار العملة من القائمة
+      if (item.currency == 'SYP') _currency = 'SYP';
+      else if (item.currency == 'USD') _currency = 'USD';
     });
+  }
+
+  // 🔴 تصفير الشاشة لإنشاء سند جديد 🔴
+  void _resetForNewVoucher() {
+    setState(() {
+      _currentVoucherId = 0;
+      _status = 'DRAFT';
+      _canPopScope = false;
+      _amountCtrl.clear();
+      _noteCtrl.clear();
+      _searchCtrl.clear();
+      _selectedCounterpart = null;
+      // التاريخ يبقى كما هو من السند السابق
+    });
+  }
+
+  // 🔴 الدرج السحري للسندات 🔴
+  void _showPostIssueActionSheet() {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children:[
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text('تم تخريج السند بنجاح! ماذا بعد؟', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.add_card, color: Colors.blue),
+                  title: const Text('إنشاء سند جديد', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onTap: () {
+                    Navigator.pop(sheetContext); // نغلق الدرج
+                    _resetForNewVoucher(); // نصفر الشاشة
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.close, color: Colors.red),
+                  title: const Text('إغلاق والعودة للقائمة', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onTap: () {
+                    Navigator.pop(sheetContext); // نغلق الدرج
+                    context.pop(); // نعود للقائمة
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _saveVoucher({bool issue = false}) async {
@@ -160,20 +190,19 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
       return;
     }
 
-    // 🔴 تم إزالة قيد التحقق من وجود رموز الصناديق هنا كما طلبت 🔴
-
-    // التحديد التلقائي لصندوق المندوب بناءً على العملة (حتى لو كان فارغاً سيتم حفظه فارغاً)
     String cashCode = _currency == 'USD' ? _cashAccountUsd : _cashAccountSyp;
     String counterpartCode = _selectedCounterpart!.code;
 
-    // المنطق المحاسبي الدقيق:
     String debit = widget.type == 'RECEIPT' ? cashCode : counterpartCode;
     String credit = widget.type == 'RECEIPT' ? counterpartCode : cashCode;
 
     String newStatus = issue ? 'ISSUED' : _status;
 
+    // 🔴 التحقق مما إذا كان السند جديداً أم مسودة 🔴
+    bool wasNew = _currentVoucherId == 0;
+
     final companion = VouchersCompanion(
-      id: widget.voucherId == 0 ? const drift.Value.absent() : drift.Value(widget.voucherId),
+      id: _currentVoucherId == 0 ? const drift.Value.absent() : drift.Value(_currentVoucherId),
       type: drift.Value(widget.type),
       status: drift.Value(newStatus),
       date: drift.Value('${_date.year}-${_date.month.toString().padLeft(2, '0')}-${_date.day.toString().padLeft(2, '0')}'),
@@ -185,12 +214,23 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
       note: drift.Value(_noteCtrl.text.trim()),
     );
 
-    await ref.read(vouchersDaoProvider).saveVoucher(companion);
+    // 🔴 جلب الـ ID بعد الحفظ 🔴
+    int savedId = await ref.read(vouchersDaoProvider).saveVoucher(companion);
 
     if (mounted) {
-      setState(() => _canPopScope = true);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(issue ? 'تم تخريج السند بنجاح' : 'تم الحفظ بنجاح')));
-      context.pop();
+      setState(() {
+        _currentVoucherId = savedId;
+        _status = newStatus;
+        _canPopScope = true;
+      });
+
+      // 🔴 المنطق الذكي: إظهار الدرج فقط إذا تم التخريج وكان السند جديداً كلياً
+      if (issue && wasNew) {
+        _showPostIssueActionSheet();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(issue ? 'تم تخريج السند بنجاح' : 'تم الحفظ كمسودة')));
+        context.pop();
+      }
     }
   }
 
@@ -206,7 +246,7 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(ctx);
-              await ref.read(vouchersDaoProvider).deleteVoucher(widget.voucherId);
+              await ref.read(vouchersDaoProvider).deleteVoucher(_currentVoucherId);
               if (mounted) {
                 setState(() => _canPopScope = true);
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم الحذف')));
@@ -254,7 +294,7 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
           backgroundColor: color,
           foregroundColor: Colors.white,
           actions:[
-            if (widget.voucherId != 0 && _status != 'SENT')
+            if (_currentVoucherId != 0 && _status != 'SENT')
               IconButton(icon: const Icon(Icons.delete), tooltip: 'حذف السند', onPressed: _confirmDelete),
             Center(
               child: Padding(
@@ -273,7 +313,6 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children:[
-              // ─── التاريخ والعملة ───
               Row(
                 children:[
                   Expanded(
@@ -289,22 +328,19 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       value: _currency,
-                      decoration: const InputDecoration(labelText: 'العملة (تُحدد الصندوق)', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(labelText: 'العملة', border: OutlineInputBorder()),
                       items: const[
                         DropdownMenuItem(value: 'SYP', child: Text('ل.س', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple))),
                         DropdownMenuItem(value: 'USD', child: Text('دولار \$', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)))
                       ],
-                      // يتم تعطيل العملة إذا كان الحساب المقابل لديه عملة صارمة لكي لا يخطئ المندوب!
                       onChanged: (_isReadOnly || (_selectedCounterpart != null && _selectedCounterpart!.currency != 'BOTH'))
-                          ? null
-                          : (val) => setState(() => _currency = val!),
+                          ? null : (val) => setState(() => _currency = val!),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
 
-              // ─── الحساب المقابل (ذكاء اصطناعي محلي) ───
               RawAutocomplete<CounterpartItem>(
                 textEditingController: _searchCtrl,
                 focusNode: FocusNode(),
@@ -322,12 +358,7 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
                       labelText: isReceipt ? 'مُستلَم من (الزبون / الحساب)' : 'مَدفوع إلى (الزبون / المصروف)',
                       border: const OutlineInputBorder(),
                       suffixIcon: _selectedCounterpart != null && !_isReadOnly
-                          ? IconButton(icon: const Icon(Icons.clear, color: Colors.red), onPressed: () {
-                        setState(() {
-                          _selectedCounterpart = null;
-                          _searchCtrl.clear();
-                        });
-                      })
+                          ? IconButton(icon: const Icon(Icons.clear, color: Colors.red), onPressed: () => setState(() { _selectedCounterpart = null; _searchCtrl.clear(); }))
                           : null,
                     ),
                   );
@@ -356,7 +387,6 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
 
               const SizedBox(height: 16),
 
-              // ─── المبلغ ───
               TextField(
                 controller: _amountCtrl,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -371,7 +401,6 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
 
               const SizedBox(height: 16),
 
-              // ─── البيان ───
               TextField(
                 controller: _noteCtrl,
                 enabled: !_isReadOnly,
@@ -385,7 +414,6 @@ class _VoucherFormScreenState extends ConsumerState<VoucherFormScreen> {
 
               const SizedBox(height: 24),
 
-              // ─── أزرار الحفظ ───
               if (!_isReadOnly)
                 Row(
                   children:[

@@ -100,6 +100,8 @@ class CustomersDao {
 
   // ─── جرد رصيد الزبون التفصيلي ───
   Future<Map<String, double>> getCustomerBalanceInfo(int customerId, String accountCode) async {
+    final customer = await (db.select(db.customers)..where((t) => t.id.equals(customerId))).getSingle();
+    double initialBalance = customer.initialBalance;
     double totalCreditSales = 0;
     double totalCreditReturns = 0;
     double totalReceipts = 0;
@@ -131,8 +133,7 @@ class CustomersDao {
     ).get();
     for (var v in payments) { totalPayments += v.amount; }
 
-    // الرصيد النهائي = (المبيعات + سندات الدفع) - (المرتجعات + سندات القبض)
-    double netBalance = (totalCreditSales + totalPayments) - (totalCreditReturns + totalReceipts);
+    double netBalance = initialBalance + (totalCreditSales + totalPayments) - (totalCreditReturns + totalReceipts);
 
     return {
       'totalCreditSales': totalCreditSales,
@@ -149,29 +150,43 @@ class CustomersDao {
     return info['netBalance']!;
   }
 
-  // ─── جلب الزبائن مع أرصدتهم كمجرى بيانات (Stream) يتحدث لحظياً ───
-  Stream<List<CustomerWithBalance>> watchCustomersWithBalances(String searchQuery) {
+  // ─── جلب الزبائن مع أرصدتهم وتطبيق الفلاتر (النسخة الاحترافية) ───
+  Stream<List<CustomerWithBalance>> watchCustomersWithBalances(String searchQuery, String showFilter, String sortFilter) {
     final searchTerm = '%${searchQuery.trim()}%';
 
-    final query = '''
-      SELECT c.*, 
-      (
-        -- 1. المبيعات الآجلة (تزيد ديون الزبون)
-        COALESCE((SELECT SUM(total) FROM invoices WHERE customer_id = c.id AND payment_method = 'CREDIT' AND type = 'SALE' AND status != 'DRAFT'), 0)
-        + 
-        -- 2. 🔴 التعديل هنا: أي سند يكون الزبون فيه مديناً (تزيد ديون الزبون)
-        COALESCE((SELECT SUM(amount) FROM vouchers WHERE debit_account = c.account_code AND status != 'DRAFT'), 0)
-        - 
-        -- 3. المرتجعات الآجلة (تنقص ديون الزبون)
-        COALESCE((SELECT SUM(total) FROM invoices WHERE customer_id = c.id AND payment_method = 'CREDIT' AND type = 'RETURN' AND status != 'DRAFT'), 0)
-        - 
-        -- 4. 🔴 التعديل هنا: أي سند يكون الزبون فيه دائناً (تنقص ديون الزبون لأنه دفع لنا)
-        COALESCE((SELECT SUM(amount) FROM vouchers WHERE credit_account = c.account_code AND status != 'DRAFT'), 0)
-      ) AS net_balance
-      FROM customers c
-      WHERE c.name LIKE ? OR c.account_code LIKE ?
-      ORDER BY c.name ASC;
+    // استخدام استعلام متداخل (SubQuery) لكي نتمكن من الفلترة والترتيب بناءً على net_balance
+    String query = '''
+      SELECT * FROM (
+        SELECT c.*, 
+        (
+          c.initial_balance 
+          + COALESCE((SELECT SUM(total) FROM invoices WHERE customer_id = c.id AND payment_method = 'CREDIT' AND type = 'SALE' AND status != 'DRAFT'), 0)
+          + COALESCE((SELECT SUM(amount) FROM vouchers WHERE debit_account = c.account_code AND status != 'DRAFT'), 0)
+          - COALESCE((SELECT SUM(total) FROM invoices WHERE customer_id = c.id AND payment_method = 'CREDIT' AND type = 'RETURN' AND status != 'DRAFT'), 0)
+          - COALESCE((SELECT SUM(amount) FROM vouchers WHERE credit_account = c.account_code AND status != 'DRAFT'), 0)
+        ) AS net_balance
+        FROM customers c
+      )
+      WHERE (name LIKE ? OR account_code LIKE ?)
     ''';
+
+    // تطبيق فلتر الإظهار
+    if (showFilter == 'HAS_DEBT') {
+      query += ' AND net_balance > 0'; // لنا معه مال
+    } else if (showFilter == 'CLEAN') {
+      query += ' AND net_balance <= 0'; // حسابه مصفر أو دفع لنا مقدماً
+    }
+
+    // تطبيق فلتر الترتيب
+    if (sortFilter == 'NAME_ASC') {
+      query += ' ORDER BY name ASC';
+    } else if (sortFilter == 'NAME_DESC') {
+      query += ' ORDER BY name DESC';
+    } else if (sortFilter == 'BAL_DESC') {
+      query += ' ORDER BY net_balance DESC'; // الأكبر ديناً أولاً
+    } else if (sortFilter == 'BAL_ASC') {
+      query += ' ORDER BY net_balance ASC'; // الأقل ديناً أولاً
+    }
 
     return db.customSelect(
       query,

@@ -121,7 +121,13 @@ class ExcelExportService {
 
         String accountCode = getAccountCode(invoice);
         String customerName = getCustomerName(invoice);
+
+        // 🔴 التعديل هنا: دمج البيان الخاص بالفاتورة مع البيان التلقائي 🔴
         String baseStatement = '${invoice.invoiceNumber} - ${DateFormat('yyyy-MM-dd hh:mm a').format(DateTime.now())}';
+        if (invoice.note != null && invoice.note!.trim().isNotEmpty) {
+          baseStatement = '$baseStatement - ملاحظة: ${invoice.note}';
+        }
+
         int payMethodCode = invoice.paymentMethod == 'CASH' ? 0 : 1;
 
         for (var line in lines) {
@@ -210,7 +216,7 @@ class ExcelExportService {
     // 🔴 التعديل هنا: إضافة عمود "الحالة" 🔴
     createHeader(custSheet,[
       'رمز الحساب الرئيسي', 'رمز العملة', 'هاتف 1', 'هاتف 2', 'البريد', 'ملاحظات',
-      'الدولة', 'المدينة', 'الحي', 'الشارع', 'الجنس', 'رمز الزبون', 'اسم الزبون', 'الحالة'
+      'الدولة', 'المدينة', 'الحي', 'الشارع', 'الجنس', 'رمز الزبون', 'الرصيد الافتتاحي', 'اسم الزبون', 'الحالة'
     ]);
     for (var c in customers) {
       String status = c.isSent ? 'معدل' : 'جديد'; // منطق تحديد الحالة
@@ -229,7 +235,8 @@ class ExcelExportService {
         TextCellValue(c.gender),
         TextCellValue('$customerCodePrefix${c.accountCode}'),
         TextCellValue('$customerNamePrefix${c.name}'),
-        TextCellValue(status), // وضع الحالة هنا
+        DoubleCellValue(c.initialBalance),
+        TextCellValue(status),
       ]);
     }
 

@@ -1,44 +1,135 @@
+// مسار الملف: lib/screens/home/home_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../providers/home_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
+  // دالة مساعدة لاختيار التاريخ
+  Future<void> _pickDate(BuildContext context, WidgetRef ref, DateTime currentDate) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: currentDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.red.shade800, // لون الأزرار
+              onPrimary: Colors.white, // لون النص داخل الأزرار
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      ref.read(dashboardDateProvider.notifier).state = picked;
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // الاستماع للبيانات الحية
     final dashboardState = ref.watch(dashboardStatsProvider);
+    final selectedDate = ref.watch(dashboardDateProvider);
+
+    final now = DateTime.now();
+    // التحقق عما إذا كان التاريخ المختار هو تاريخ اليوم الفعلي
+    final isToday = selectedDate.year == now.year && selectedDate.month == now.month && selectedDate.day == now.day;
 
     return Scaffold(
-      backgroundColor: Colors.grey[100], // لون خلفية مريح للعين
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text('إحصائيات اليوم الحية', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('الملخص المالي', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         elevation: 0,
       ),
       body: dashboardState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Text('حدث خطأ في جلب البيانات:\n$error', textAlign: TextAlign.center),
-        ),
+        error: (error, stack) => Center(child: Text('حدث خطأ في جلب البيانات:\n$error', textAlign: TextAlign.center)),
         data: (stats) {
           return RefreshIndicator(
             onRefresh: () async {
-              // فقط لتحديث الواجهة يدوياً إن رغب المستخدم، رغم أن البيانات حية
               ref.invalidate(dashboardStatsProvider);
             },
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers:[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Column(
+                      children:[
+                        // ─── 🔴 شريط اختيار التاريخ الذكي ───
+                        InkWell(
+                          onTap: () => _pickDate(context, ref, selectedDate),
+                          borderRadius: BorderRadius.circular(12),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              // تغيير اللون للبرتقالي الفاتح لتنبيه المستخدم أنه في يوم سابق
+                                color: isToday ? Colors.white : Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isToday ? Colors.grey.shade300 : Colors.orange.shade300,
+                                  width: 1.5,
+                                ),
+                                boxShadow:[
+                                  BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2)),
+                                ]
+                            ),
+                            child: Row(
+                              children:[
+                                Icon(Icons.calendar_month, color: isToday ? Colors.blue.shade700 : Colors.orange.shade800),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children:[
+                                      Text(
+                                        isToday ? 'إحصائيات اليوم الحالي' : 'إحصائيات يوم سابق',
+                                        style: TextStyle(fontSize: 12, color: isToday ? Colors.grey.shade600 : Colors.orange.shade800, fontWeight: FontWeight.bold),
+                                      ),
+                                      Text(
+                                        '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
+                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isToday ? Colors.black87 : Colors.orange.shade900),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // زر العودة السريعة لليوم
+                                if (!isToday)
+                                  TextButton.icon(
+                                    icon: const Icon(Icons.restore, size: 18),
+                                    label: const Text('العودة لليوم'),
+                                    onPressed: () => ref.read(dashboardDateProvider.notifier).state = DateTime.now(),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.red.shade800,
+                                      padding: EdgeInsets.zero, // ✅ تم نقلها إلى هنا بشكل صحيح
+                                    ),
+                                  ),
+                                if (isToday)
+                                  const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
                 SliverPadding(
                   padding: const EdgeInsets.all(16.0),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       _buildSectionTitle('أرصدة الصناديق الحالية (Live)'),
                       const SizedBox(height: 8),
-                      // بطاقات الصناديق (تأخذ عرض الشاشة مقسماً على 2)
                       Row(
                         children:[
                           Expanded(
@@ -64,7 +155,7 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 24),
 
-                      _buildSectionTitle('فواتير اليوم (المعتمدة)'),
+                      _buildSectionTitle('فواتير التاريخ المختار (المعتمدة)'),
                       const SizedBox(height: 8),
                       Row(
                         children:[
@@ -77,20 +168,19 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 24),
 
-                      _buildSectionTitle('الحركة المالية لليوم'),
+                      _buildSectionTitle('الحركة المالية للتاريخ المختار'),
                       const SizedBox(height: 8),
                     ]),
                   ),
                 ),
 
-                // شبكة البطاقات المالية
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   sliver: SliverGrid.count(
-                    crossAxisCount: 2, // عمودين
+                    crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 1.1, // التناسب لتبدو البطاقة بشكل شبه مربع
+                    childAspectRatio: 1.1,
                     children:[
                       _FinancialCard(
                         title: 'التحصيلات النقدية',
@@ -136,18 +226,13 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  // ودجت مساعد لعنوان الأقسام
   Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-    );
+    return Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87));
   }
 }
 
-// ─── كلاسات البطاقات المخصصة للواجهة ───
-
-// 1. بطاقة الرصيد الحي للصندوق
+// ─── باقي الكلاسات المساعدة (BalanceCard, CountCard, FinancialCard) تبقى كما هي لديك ───
+// يرجى نسخها كما كانت من الكود الأصلي ولصقها هنا أسفل الملف
 class _BalanceCard extends StatelessWidget {
   final String title;
   final double amount;
@@ -190,7 +275,6 @@ class _BalanceCard extends StatelessWidget {
   }
 }
 
-// 2. بطاقة عداد الفواتير
 class _CountCard extends StatelessWidget {
   final String title;
   final int count;
@@ -220,7 +304,6 @@ class _CountCard extends StatelessWidget {
   }
 }
 
-// 3. البطاقة المالية التفصيلية (تعرض SYP و USD معاً)
 class _FinancialCard extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -265,7 +348,6 @@ class _FinancialCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(subtitle, style: const TextStyle(fontSize: 10, color: Colors.grey)),
           const Spacer(),
-          // قسم السوري
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children:[
@@ -281,7 +363,6 @@ class _FinancialCard extends StatelessWidget {
             ],
           ),
           const Divider(height: 8, thickness: 0.5),
-          // قسم الدولار
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children:[
@@ -302,9 +383,7 @@ class _FinancialCard extends StatelessWidget {
   }
 }
 
-// دالة بسيطة لتنسيق الأرقام (إزالة الأصفار العشرية إن كان الرقم صحيحاً لتنظيف العرض)
 String _formatNumber(double number) {
-  // إذا كنت تستخدم حزمة intl يمكنك استخدام: NumberFormat('#,##0.##').format(number)
   if (number == number.truncateToDouble()) {
     return number.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
   }

@@ -18,18 +18,15 @@ class ProductSelectionScreen extends ConsumerStatefulWidget {
 }
 
 class _ProductSelectionScreenState extends ConsumerState<ProductSelectionScreen> {
-  // استخدام ValueNotifier بدلاً من setState لمنع تحديث الشاشة بالكامل
   final ValueNotifier<Set<Product>> _selectedProductsNotifier = ValueNotifier({});
   final ValueNotifier<String> _searchQueryNotifier = ValueNotifier('');
   final TextEditingController _searchController = TextEditingController();
 
-  // تخزين اتصال قاعدة البيانات لمنع إعادة التحميل عند أي تغيير بسيط
   late final Stream<List<ProductCategory>> _categoriesStream;
 
   @override
   void initState() {
     super.initState();
-    // نجلب المجموعات مرة واحدة فقط عند فتح الشاشة
     _categoriesStream = ref.read(catalogDaoProvider).watchVisibleCategories();
   }
 
@@ -63,7 +60,7 @@ class _ProductSelectionScreenState extends ConsumerState<ProductSelectionScreen>
         return DefaultTabController(
           length: categories.length,
           child: Scaffold(
-            backgroundColor: Colors.grey.shade100,
+            backgroundColor: Colors.white,
             appBar: AppBar(
               title: const Text('إضافة مواد للفاتورة'),
               backgroundColor: AppColors.primary,
@@ -80,10 +77,10 @@ class _ProductSelectionScreenState extends ConsumerState<ProductSelectionScreen>
             ),
             body: Column(
               children:[
-                // ─── شريط البحث (مستقل ولا يتأثر بالتحديثات) ───
+                // ─── شريط البحث ───
                 Container(
                   color: Colors.white,
-                  padding: const EdgeInsets.all(12.0),
+                  padding: const EdgeInsets.all(8.0),
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
@@ -91,29 +88,25 @@ class _ProductSelectionScreenState extends ConsumerState<ProductSelectionScreen>
                       prefixIcon: const Icon(Icons.search, color: AppColors.primary),
                       filled: true,
                       fillColor: Colors.grey.shade100,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                       contentPadding: const EdgeInsets.symmetric(vertical: 0),
                     ),
-                    // نحدث النص في المراقب فقط بدون setState
-                    onChanged: (val) => _searchQueryNotifier.value = val.toLowerCase(),
+                    onChanged: (val) => _searchQueryNotifier.value = val.trim().toLowerCase(),
                   ),
                 ),
 
-                // ─── منطقة المجموعات ───
+                // ─── منطقة الجداول (الشبكة) ───
                 Expanded(
                   child: TabBarView(
                     children: categories.map((category) {
-                      return _buildCategoryView(catalogDao, category.id);
+                      return _buildCategoryTable(catalogDao, category.id);
                     }).toList(),
                   ),
                 ),
               ],
             ),
 
-            // ─── زر الإضافة (يستمع للتحديدات فقط ولا يُحدث الشاشة) ───
+            // ─── زر الإضافة السفلي ───
             floatingActionButton: widget.isSingleSelection
                 ? null
                 : ValueListenableBuilder<Set<Product>>(
@@ -138,94 +131,123 @@ class _ProductSelectionScreenState extends ConsumerState<ProductSelectionScreen>
     );
   }
 
-  // ─── بناء العواميد بتمرير موحد (Unified Scroll) ───
-  Widget _buildCategoryView(CatalogDao dao, int categoryId) {
+  // ─── بناء الجدول الشبيه بالفاتورة الورقية ───
+  Widget _buildCategoryTable(CatalogDao dao, int categoryId) {
     return StreamBuilder<List<ProductColumn>>(
       stream: dao.watchVisibleColumnsByCategory(categoryId),
       builder: (context, colSnapshot) {
-        if (colSnapshot.connectionState == ConnectionState.waiting && !colSnapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
+        if (!colSnapshot.hasData) return const Center(child: CircularProgressIndicator());
         final columns = colSnapshot.data ??[];
-        if (columns.isEmpty) {
-          return const Center(child: Text('لا توجد عواميد مرئية في هذه المجموعة.'));
-        }
+        if (columns.isEmpty) return const Center(child: Text('لا توجد عواميد.'));
 
-        // هنا السحر: SingleChildScrollView واحد يلف جميع العواميد لتتحرك معاً
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(8.0).copyWith(bottom: 80), // مساحة للزر السفلي
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: columns.map((column) {
-              return Expanded(
-                child: _buildColumnSection(dao, column),
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
-  }
+        return StreamBuilder<List<Product>>(
+          stream: dao.watchActiveProductsByCategory(categoryId),
+          builder: (context, prodSnapshot) {
+            if (!prodSnapshot.hasData) return const Center(child: CircularProgressIndicator());
+            final allProducts = prodSnapshot.data ??[];
 
-  // ─── بناء العامود الواحد ───
-  Widget _buildColumnSection(CatalogDao dao, ProductColumn column) {
-    return StreamBuilder<List<Product>>(
-      stream: dao.watchActiveProductsByColumn(column.id),
-      builder: (context, prodSnapshot) {
-        if (!prodSnapshot.hasData) return const SizedBox.shrink();
+            return ValueListenableBuilder<String>(
+              valueListenable: _searchQueryNotifier,
+              builder: (context, query, child) {
 
-        // استماع للبحث محلياً داخل العامود فقط
-        return ValueListenableBuilder<String>(
-          valueListenable: _searchQueryNotifier,
-          builder: (context, query, child) {
-            final products = prodSnapshot.data!.where((p) {
-              return p.name.toLowerCase().contains(query) ||
-                  p.code.toLowerCase().contains(query);
-            }).toList();
+                // 1. تصفية المواد وتوزيعها على العواميد الخاصة بها
+                Map<int, List<Product>> groupedProducts = {};
+                for (var col in columns) {
+                  groupedProducts[col.id] =[];
+                }
 
-            // إخفاء العامود بالكامل إذا كنا نبحث ولم يطابق أي مادة فيه
-            if (query.isNotEmpty && products.isEmpty) return const SizedBox.shrink();
+                for (var p in allProducts) {
+                  if (groupedProducts.containsKey(p.columnId)) {
+                    // تطبيق البحث إذا وجد
+                    if (query.isEmpty || p.name.toLowerCase().contains(query) || p.code.toLowerCase().contains(query)) {
+                      groupedProducts[p.columnId]!.add(p);
+                    }
+                  }
+                }
 
-            return Card(
-              elevation: 2,
-              margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Column(
-                mainAxisSize: MainAxisSize.min, // لا يأخذ مساحة أكبر من حجمه
-                children:[
-                  // رأس العامود
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                      border: Border(bottom: BorderSide(color: AppColors.primary.withOpacity(0.2))),
-                    ),
-                    child: Text(
-                      column.name,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                        fontSize: 14,
+                // 2. إيجاد أطول عامود لتحديد عدد صفوف الجدول
+                int maxRows = 0;
+                for (var list in groupedProducts.values) {
+                  if (list.length > maxRows) maxRows = list.length;
+                }
+
+                if (maxRows == 0) return const Center(child: Text('لا توجد مواد مطابقة للبحث.'));
+
+                // 3. بناء الجدول
+                return Container(
+                  margin: const EdgeInsets.all(8.0).copyWith(bottom: 80), // هوامش وإطار عام للجدول
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade600, width: 1.5),
+                    borderRadius: BorderRadius.circular(4), // حواف خفيفة جداً
+                  ),
+                  child: Column(
+                    children:[
+                      // ─── ترويسة الجدول (أسماء العواميد) ───
+                      Container(
+                        color: Colors.grey.shade300,
+                        child: Row(
+                          children: columns.map((col) {
+                            bool isLast = col == columns.last;
+                            return Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  border: isLast ? null : Border(left: BorderSide(color: Colors.grey.shade600, width: 1)),
+                                ),
+                                child: Text(
+                                  col.name,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
                       ),
-                    ),
-                  ),
+                      Divider(height: 1, thickness: 1.5, color: Colors.grey.shade600),
 
-                  // قائمة المواد (Column بدلاً من ListView لتتحرك مع الشاشة ككل)
-                  Padding(
-                    padding: const EdgeInsets.all(6.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: products.isEmpty
-                          ?[const Padding(padding: EdgeInsets.all(8.0), child: Text('لا يوجد مواد', style: TextStyle(color: Colors.grey)))]
-                          : products.map((p) => _buildProductItem(p)).toList(),
-                    ),
+                      // ─── صفوف الجدول (مبنية بـ ListView لأداء صاروخي) ───
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: maxRows,
+                          itemBuilder: (context, rowIndex) {
+                            // تلوين الصفوف بالتناوب (Zebra Striping) لراحة العين
+                            bool isEvenRow = rowIndex % 2 == 0;
+                            Color rowColor = isEvenRow ? Colors.white : Colors.blueGrey.shade50;
+
+                            return Container(
+                              color: rowColor,
+                              child: IntrinsicHeight( // لجعل الخلايا بنفس الطول
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: columns.map((col) {
+                                    bool isLast = col == columns.last;
+                                    final list = groupedProducts[col.id]!;
+
+                                    Widget cellContent = const SizedBox.shrink();
+                                    if (rowIndex < list.length) {
+                                      cellContent = _buildTableCell(list[rowIndex]);
+                                    }
+
+                                    return Expanded(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          border: isLast ? null : Border(left: BorderSide(color: Colors.grey.shade400, width: 1)),
+                                        ),
+                                        child: cellContent,
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             );
           },
         );
@@ -233,55 +255,41 @@ class _ProductSelectionScreenState extends ConsumerState<ProductSelectionScreen>
     );
   }
 
-  // ─── بناء بطاقة المادة ───
-  Widget _buildProductItem(Product product) {
-    // كل مادة تستمع فقط لحالة التحديد الخاصة بها لكي لا تُحدث باقي الشاشة
+  // ─── بناء الخلية الواحدة (اسم المادة القابل للضغط) ───
+  Widget _buildTableCell(Product product) {
     return ValueListenableBuilder<Set<Product>>(
       valueListenable: _selectedProductsNotifier,
       builder: (context, selected, child) {
         final isSelected = selected.any((p) => p.id == product.id);
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 6.0),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () {
-              if (widget.isSingleSelection) {
-                Navigator.pop(context, [product]);
+        return InkWell(
+          onTap: () {
+            if (widget.isSingleSelection) {
+              Navigator.pop(context, [product]);
+            } else {
+              final newSet = Set<Product>.from(_selectedProductsNotifier.value);
+              if (isSelected) {
+                newSet.removeWhere((p) => p.id == product.id);
               } else {
-                // تحديث قائمة التحديد بصمت
-                final newSet = Set<Product>.from(_selectedProductsNotifier.value);
-                if (isSelected) {
-                  newSet.removeWhere((p) => p.id == product.id);
-                } else {
-                  newSet.add(product);
-                }
-                _selectedProductsNotifier.value = newSet;
+                newSet.add(product);
               }
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary.withOpacity(0.15) : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isSelected ? AppColors.primary : Colors.grey.shade300,
-                  width: isSelected ? 2 : 1,
-                ),
-                boxShadow: isSelected ?[] :[
-                  BoxShadow(color: Colors.grey.shade200, blurRadius: 2, offset: const Offset(0, 1))
-                ],
-              ),
-              child: Text(
-                product.name,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                  color: isSelected ? AppColors.primary : Colors.black87,
-                  fontSize: 13,
-                ),
+              _selectedProductsNotifier.value = newSet;
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+            // إذا كانت محددة، نعطيها لوناً مميزاً
+            color: isSelected ? AppColors.primary.withOpacity(0.2) : Colors.transparent,
+            alignment: Alignment.center,
+            child: Text(
+              product.name,
+              textAlign: TextAlign.center,
+              maxLines: 1, // سطر واحد كما طلبت
+              overflow: TextOverflow.ellipsis, // وضع نقاط إذا كان الاسم طويلاً جداً
+              style: TextStyle(
+                fontSize: 11, // خط أصغر ومناسب للجداول
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                color: isSelected ? AppColors.primary : Colors.black87,
               ),
             ),
           ),

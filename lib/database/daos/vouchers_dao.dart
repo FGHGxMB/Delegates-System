@@ -10,12 +10,25 @@ class VouchersDao {
 
   VouchersDao(this.db, this.settingsDao);
 
-  // ─── جلب قائمة السندات ──────────────────────────────────
-  Stream<List<Voucher>> watchAllVouchers() {
-    return (db.select(db.vouchers)
-    // التعديل هنا: الترتيب حسب رقم المعرف ID (وهو يمثل الترتيب الزمني الفعلي)
-      ..orderBy([(t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)]))
-        .watch();
+  // ─── جلب قائمة السندات مع الفلاتر ────────────────────────
+  Stream<List<Voucher>> watchAllVouchers(String typeFilter, String sortFilter) {
+    final query = db.select(db.vouchers);
+
+    if (typeFilter != 'ALL') {
+      query.where((t) => t.type.equals(typeFilter));
+    }
+
+    if (sortFilter == 'NEWEST') {
+      query.orderBy([(t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)]);
+    } else if (sortFilter == 'OLDEST') {
+      query.orderBy([(t) => OrderingTerm(expression: t.id, mode: OrderingMode.asc)]);
+    } else if (sortFilter == 'HIGH_AMOUNT') {
+      query.orderBy([(t) => OrderingTerm(expression: t.amount, mode: OrderingMode.desc)]);
+    } else if (sortFilter == 'LOW_AMOUNT') {
+      query.orderBy([(t) => OrderingTerm(expression: t.amount, mode: OrderingMode.asc)]);
+    }
+
+    return query.watch();
   }
 
   // ─── جلب سند معين ─────────────────────────────────────
@@ -35,20 +48,22 @@ class VouchersDao {
   }
 
   // ─── حفظ السند (جديد أو تعديل) ─────────────────────────
-  Future<void> saveVoucher(VouchersCompanion voucher) async {
-    await db.transaction(() async {
+  Future<int> saveVoucher(VouchersCompanion voucher) async {
+    return await db.transaction(() async {
       // إذا كان السند جديداً، نولد له رقماً تسلسلياً
       if (!voucher.id.present) {
         final nextNum = await _getNextVoucherNumber(voucher.type.value);
         final newVoucher = voucher.copyWith(
           voucherNumber: Value(nextNum),
         );
-        await db.into(db.vouchers).insert(newVoucher);
+        // نُرجع الـ ID الجديد
+        return await db.into(db.vouchers).insert(newVoucher);
       } else {
-        // 🔴 الإصلاح السحري هنا: استخدام write للتحديث الجزئي بدلاً من replace
         await (db.update(db.vouchers)
           ..where((t) => t.id.equals(voucher.id.value)))
             .write(voucher);
+        // نُرجع الـ ID الحالي
+        return voucher.id.value;
       }
     });
   }

@@ -495,6 +495,14 @@ class $CustomersTable extends Customers
   late final GeneratedColumn<String> gender = GeneratedColumn<String>(
       'gender', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _initialBalanceMeta =
+      const VerificationMeta('initialBalance');
+  @override
+  late final GeneratedColumn<double> initialBalance = GeneratedColumn<double>(
+      'initial_balance', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   static const VerificationMeta _isSentMeta = const VerificationMeta('isSent');
   @override
   late final GeneratedColumn<bool> isSent = GeneratedColumn<bool>(
@@ -536,6 +544,7 @@ class $CustomersTable extends Customers
         neighborhood,
         street,
         gender,
+        initialBalance,
         isSent,
         isModified,
         createdAt
@@ -617,6 +626,12 @@ class $CustomersTable extends Customers
     } else if (isInserting) {
       context.missing(_genderMeta);
     }
+    if (data.containsKey('initial_balance')) {
+      context.handle(
+          _initialBalanceMeta,
+          initialBalance.isAcceptableOrUnknown(
+              data['initial_balance']!, _initialBalanceMeta));
+    }
     if (data.containsKey('is_sent')) {
       context.handle(_isSentMeta,
           isSent.isAcceptableOrUnknown(data['is_sent']!, _isSentMeta));
@@ -668,6 +683,8 @@ class $CustomersTable extends Customers
           .read(DriftSqlType.string, data['${effectivePrefix}street']),
       gender: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}gender'])!,
+      initialBalance: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}initial_balance'])!,
       isSent: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_sent'])!,
       isModified: attachedDatabase.typeMapping
@@ -698,6 +715,7 @@ class Customer extends DataClass implements Insertable<Customer> {
   final String? neighborhood;
   final String? street;
   final String gender;
+  final double initialBalance;
   final bool isSent;
   final bool isModified;
   final DateTime? createdAt;
@@ -716,6 +734,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       this.neighborhood,
       this.street,
       required this.gender,
+      required this.initialBalance,
       required this.isSent,
       required this.isModified,
       this.createdAt});
@@ -754,6 +773,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       map['street'] = Variable<String>(street);
     }
     map['gender'] = Variable<String>(gender);
+    map['initial_balance'] = Variable<double>(initialBalance);
     map['is_sent'] = Variable<bool>(isSent);
     map['is_modified'] = Variable<bool>(isModified);
     if (!nullToAbsent || createdAt != null) {
@@ -787,6 +807,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       street:
           street == null && nullToAbsent ? const Value.absent() : Value(street),
       gender: Value(gender),
+      initialBalance: Value(initialBalance),
       isSent: Value(isSent),
       isModified: Value(isModified),
       createdAt: createdAt == null && nullToAbsent
@@ -813,6 +834,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       neighborhood: serializer.fromJson<String?>(json['neighborhood']),
       street: serializer.fromJson<String?>(json['street']),
       gender: serializer.fromJson<String>(json['gender']),
+      initialBalance: serializer.fromJson<double>(json['initialBalance']),
       isSent: serializer.fromJson<bool>(json['isSent']),
       isModified: serializer.fromJson<bool>(json['isModified']),
       createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
@@ -836,6 +858,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       'neighborhood': serializer.toJson<String?>(neighborhood),
       'street': serializer.toJson<String?>(street),
       'gender': serializer.toJson<String>(gender),
+      'initialBalance': serializer.toJson<double>(initialBalance),
       'isSent': serializer.toJson<bool>(isSent),
       'isModified': serializer.toJson<bool>(isModified),
       'createdAt': serializer.toJson<DateTime?>(createdAt),
@@ -857,6 +880,7 @@ class Customer extends DataClass implements Insertable<Customer> {
           Value<String?> neighborhood = const Value.absent(),
           Value<String?> street = const Value.absent(),
           String? gender,
+          double? initialBalance,
           bool? isSent,
           bool? isModified,
           Value<DateTime?> createdAt = const Value.absent()}) =>
@@ -876,6 +900,7 @@ class Customer extends DataClass implements Insertable<Customer> {
             neighborhood.present ? neighborhood.value : this.neighborhood,
         street: street.present ? street.value : this.street,
         gender: gender ?? this.gender,
+        initialBalance: initialBalance ?? this.initialBalance,
         isSent: isSent ?? this.isSent,
         isModified: isModified ?? this.isModified,
         createdAt: createdAt.present ? createdAt.value : this.createdAt,
@@ -899,6 +924,9 @@ class Customer extends DataClass implements Insertable<Customer> {
           : this.neighborhood,
       street: data.street.present ? data.street.value : this.street,
       gender: data.gender.present ? data.gender.value : this.gender,
+      initialBalance: data.initialBalance.present
+          ? data.initialBalance.value
+          : this.initialBalance,
       isSent: data.isSent.present ? data.isSent.value : this.isSent,
       isModified:
           data.isModified.present ? data.isModified.value : this.isModified,
@@ -923,6 +951,7 @@ class Customer extends DataClass implements Insertable<Customer> {
           ..write('neighborhood: $neighborhood, ')
           ..write('street: $street, ')
           ..write('gender: $gender, ')
+          ..write('initialBalance: $initialBalance, ')
           ..write('isSent: $isSent, ')
           ..write('isModified: $isModified, ')
           ..write('createdAt: $createdAt')
@@ -946,6 +975,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       neighborhood,
       street,
       gender,
+      initialBalance,
       isSent,
       isModified,
       createdAt);
@@ -967,6 +997,7 @@ class Customer extends DataClass implements Insertable<Customer> {
           other.neighborhood == this.neighborhood &&
           other.street == this.street &&
           other.gender == this.gender &&
+          other.initialBalance == this.initialBalance &&
           other.isSent == this.isSent &&
           other.isModified == this.isModified &&
           other.createdAt == this.createdAt);
@@ -987,6 +1018,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
   final Value<String?> neighborhood;
   final Value<String?> street;
   final Value<String> gender;
+  final Value<double> initialBalance;
   final Value<bool> isSent;
   final Value<bool> isModified;
   final Value<DateTime?> createdAt;
@@ -1005,6 +1037,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     this.neighborhood = const Value.absent(),
     this.street = const Value.absent(),
     this.gender = const Value.absent(),
+    this.initialBalance = const Value.absent(),
     this.isSent = const Value.absent(),
     this.isModified = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -1024,6 +1057,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     this.neighborhood = const Value.absent(),
     this.street = const Value.absent(),
     required String gender,
+    this.initialBalance = const Value.absent(),
     this.isSent = const Value.absent(),
     this.isModified = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -1046,6 +1080,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     Expression<String>? neighborhood,
     Expression<String>? street,
     Expression<String>? gender,
+    Expression<double>? initialBalance,
     Expression<bool>? isSent,
     Expression<bool>? isModified,
     Expression<DateTime>? createdAt,
@@ -1065,6 +1100,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
       if (neighborhood != null) 'neighborhood': neighborhood,
       if (street != null) 'street': street,
       if (gender != null) 'gender': gender,
+      if (initialBalance != null) 'initial_balance': initialBalance,
       if (isSent != null) 'is_sent': isSent,
       if (isModified != null) 'is_modified': isModified,
       if (createdAt != null) 'created_at': createdAt,
@@ -1086,6 +1122,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
       Value<String?>? neighborhood,
       Value<String?>? street,
       Value<String>? gender,
+      Value<double>? initialBalance,
       Value<bool>? isSent,
       Value<bool>? isModified,
       Value<DateTime?>? createdAt}) {
@@ -1104,6 +1141,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
       neighborhood: neighborhood ?? this.neighborhood,
       street: street ?? this.street,
       gender: gender ?? this.gender,
+      initialBalance: initialBalance ?? this.initialBalance,
       isSent: isSent ?? this.isSent,
       isModified: isModified ?? this.isModified,
       createdAt: createdAt ?? this.createdAt,
@@ -1155,6 +1193,9 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     if (gender.present) {
       map['gender'] = Variable<String>(gender.value);
     }
+    if (initialBalance.present) {
+      map['initial_balance'] = Variable<double>(initialBalance.value);
+    }
     if (isSent.present) {
       map['is_sent'] = Variable<bool>(isSent.value);
     }
@@ -1184,6 +1225,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
           ..write('neighborhood: $neighborhood, ')
           ..write('street: $street, ')
           ..write('gender: $gender, ')
+          ..write('initialBalance: $initialBalance, ')
           ..write('isSent: $isSent, ')
           ..write('isModified: $isModified, ')
           ..write('createdAt: $createdAt')
@@ -6559,6 +6601,7 @@ typedef $$CustomersTableCreateCompanionBuilder = CustomersCompanion Function({
   Value<String?> neighborhood,
   Value<String?> street,
   required String gender,
+  Value<double> initialBalance,
   Value<bool> isSent,
   Value<bool> isModified,
   Value<DateTime?> createdAt,
@@ -6578,6 +6621,7 @@ typedef $$CustomersTableUpdateCompanionBuilder = CustomersCompanion Function({
   Value<String?> neighborhood,
   Value<String?> street,
   Value<String> gender,
+  Value<double> initialBalance,
   Value<bool> isSent,
   Value<bool> isModified,
   Value<DateTime?> createdAt,
@@ -6614,6 +6658,7 @@ class $$CustomersTableTableManager extends RootTableManager<
             Value<String?> neighborhood = const Value.absent(),
             Value<String?> street = const Value.absent(),
             Value<String> gender = const Value.absent(),
+            Value<double> initialBalance = const Value.absent(),
             Value<bool> isSent = const Value.absent(),
             Value<bool> isModified = const Value.absent(),
             Value<DateTime?> createdAt = const Value.absent(),
@@ -6633,6 +6678,7 @@ class $$CustomersTableTableManager extends RootTableManager<
             neighborhood: neighborhood,
             street: street,
             gender: gender,
+            initialBalance: initialBalance,
             isSent: isSent,
             isModified: isModified,
             createdAt: createdAt,
@@ -6652,6 +6698,7 @@ class $$CustomersTableTableManager extends RootTableManager<
             Value<String?> neighborhood = const Value.absent(),
             Value<String?> street = const Value.absent(),
             required String gender,
+            Value<double> initialBalance = const Value.absent(),
             Value<bool> isSent = const Value.absent(),
             Value<bool> isModified = const Value.absent(),
             Value<DateTime?> createdAt = const Value.absent(),
@@ -6671,6 +6718,7 @@ class $$CustomersTableTableManager extends RootTableManager<
             neighborhood: neighborhood,
             street: street,
             gender: gender,
+            initialBalance: initialBalance,
             isSent: isSent,
             isModified: isModified,
             createdAt: createdAt,
@@ -6748,6 +6796,11 @@ class $$CustomersTableFilterComposer
 
   ColumnFilters<String> get gender => $state.composableBuilder(
       column: $state.table.gender,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<double> get initialBalance => $state.composableBuilder(
+      column: $state.table.initialBalance,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -6850,6 +6903,11 @@ class $$CustomersTableOrderingComposer
 
   ColumnOrderings<String> get gender => $state.composableBuilder(
       column: $state.table.gender,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<double> get initialBalance => $state.composableBuilder(
+      column: $state.table.initialBalance,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 

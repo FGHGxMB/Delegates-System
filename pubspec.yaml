@@ -57,6 +57,9 @@ dependencies:
   # ─── UI & Features ───
   mobile_scanner: ^5.1.1
 
+  shared_preferences: ^2.2.2  # لحفظ قائمة المستخدمين والمستخدم النشط
+  file_picker: ^8.0.0         # لاختيار ملف النسخة الاحتياطية من الهاتف
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

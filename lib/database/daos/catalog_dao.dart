@@ -103,9 +103,10 @@ class CatalogDao {
     return result.isNotEmpty;
   }
 
+  // ─── جلب جميع المواد النشطة لمجموعة معينة ───
   Stream<List<Product>> watchActiveProductsByCategory(int categoryId) {
     return (db.select(db.products)
-      ..where((t) => t.isActive.equals(true) & t.categoryId.equals(categoryId))
+      ..where((t) => t.categoryId.equals(categoryId) & t.isActive.equals(true))
       ..orderBy([(t) => OrderingTerm(expression: t.displayOrder)]))
         .watch();
   }

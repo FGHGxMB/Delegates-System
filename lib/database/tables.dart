@@ -31,6 +31,7 @@ class Customers extends Table {
   TextColumn get neighborhood => text().nullable()();
   TextColumn get street => text().nullable()();
   TextColumn get gender => text()();
+  RealColumn get initialBalance => real().withDefault(const Constant(0))();
   BoolColumn get isSent => boolean().withDefault(const Constant(false))();
   BoolColumn get isModified => boolean().withDefault(const Constant(false))(); // [جديد] للتفريق في الإكسيل
   DateTimeColumn get createdAt => dateTime().nullable()();
